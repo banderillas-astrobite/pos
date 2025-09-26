@@ -1,508 +1,557 @@
 <!doctype html>
 <html lang="es">
 <head>
-	<meta charset="utf-8" />
-	<meta name="viewport" content="width=device-width,initial-scale=1" />
-	<title>Astro Bite TPV Multi-Ticket (Final)</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1.0,user-scalable=no,shrink-to-fit=no" />
+    <title>Astro Bite TPV Multi-Ticket (Final)</title>
     <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
 
-	<style>
-		:root{
-			--brand: #ff6b00;
-			--brand-dark: #d95000;
-			--accent: #ff9f43;
-			--muted: #f3f4f6;
-			--card: #ffffff;
-			--text: #222;
-			--success: #2ecc71;
-			--danger: #e74c3c;
-			--shadow: 0 10px 30px rgba(0,0,0,0.12);
-			--radius: 12px;
-			--gap: 12px;
-			--max-width: 980px;
-		
-			/* Colores para identificacin rpida del relleno */
-			--color-salchicha: #ffecb3; 
-			--color-combinada: #b3e5fc; 
-			--color-queso: #c8e6c9; 
-			--color-extra: #f0f0f0; 
-			
-			/* Colores de Tickets Activos */
-			--ticket-bg: #f9f9f9;
-			--ticket-active-bg: #fff;
-			--ticket-border: #eee;
-		}
+    <style>
+        :root{
+            /* Colores */
+            --brand: #ff6b00;
+            --brand-dark: #d95000;
+            --accent: #ff9f43;
+            --muted: #f3f4f6;
+            --card: #ffffff;
+            --text: #222;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --shadow: 0 10px 30px rgba(0,0,0,0.12);
+            --radius: 12px;
+            --gap: 12px;
+            --max-width: 980px;
+        
+            /* Colores para identificación rápida del relleno */
+            --color-salchicha: #ffecb3; 
+            --color-combinada: #b3e5fc; 
+            --color-queso: #c8e6c9; 
+            --color-extra: #f0f0f0; 
+            
+            /* Colores de Tickets Activos */
+            --ticket-bg: #f9f9f9;
+            --ticket-active-bg: #fff;
+            --ticket-border: #eee;
+            --highlight-cash: #fffbe6; /* Amarillo suave para resaltar el pago */
+        }
 
-		*{box-sizing:border-box}
-		html,body{height:100%}
-		body{
-			margin:0;
-			font-family: Inter, "Helvetica Neue", Arial, sans-serif;
-			background:#fff;
-			color:var(--text);
-			display:flex;
-			justify-content:center;
-			padding:1rem;
-		}
+        *{box-sizing:border-box}
+        html,body{height:100%}
+        body{
+            margin:0;
+            font-family: Inter, "Helvetica Neue", Arial, sans-serif;
+            background:#fff;
+            color:var(--text);
+            display:flex;
+            justify-content:center;
+            padding:1rem;
+            touch-action: manipulation;
+        }
 
-		.wrap{
-			width:100%;
-			max-width:var(--max-width);
-			display:grid;
-			grid-template-columns:1fr 380px;
-			gap:1rem;
-			align-items:start;
-		}
+        .wrap{
+            width:100%;
+            max-width:var(--max-width);
+            display:grid;
+            grid-template-columns:1fr 380px;
+            gap:1rem;
+            align-items:start;
+        }
 
-		/* --- CSS Base de Elementos --- */
+        /* --- CSS Base de Elementos --- */
+        header.app-header{
+            grid-column:1 / -1;
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:1rem;
+            margin-bottom:0.5rem;
+        }
+        .brand{
+            display:flex;
+            align-items:center;
+            gap:0.8rem;
+        }
+        .logo{
+            width:44px;
+            height:44px;
+            border-radius:10px;
+            background:linear-gradient(135deg,var(--brand),var(--accent));
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            color:white;
+            font-weight:700;
+            box-shadow: var(--shadow);
+        }
+        h1{font-size:1.1rem;margin:0}
+        .sub{color:#666;font-size:0.85rem;margin:0}
+        .panel{
+            background:var(--card);
+            border-radius: var(--radius);
+            padding: 1rem;
+            box-shadow: var(--shadow);
+        }
 
-		header.app-header{
-			grid-column:1 / -1;
-			display:flex;
-			align-items:center;
-			justify-content:space-between;
-			gap:1rem;
-			margin-bottom:0.5rem;
-		}
-		.brand{
-			display:flex;
-			align-items:center;
-			gap:0.8rem;
-		}
-		.logo{
-			width:44px;
-			height:44px;
-			border-radius:10px;
-			background:linear-gradient(135deg,var(--brand),var(--accent));
-			display:flex;
-			align-items:center;
-			justify-content:center;
-			color:white;
-			font-weight:700;
-			box-shadow: var(--shadow);
-		}
-		h1{font-size:1.1rem;margin:0}
-		.sub{color:#666;font-size:0.85rem;margin:0}
+        /* Contenedor de la sección de productos para DESKTOP */
+        #product-panel-content {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
 
-		.panel{
-			background:var(--card);
-			border-radius: var(--radius);
-			padding: 1rem;
-			box-shadow: var(--shadow);
-		}
+        /* Categorías */
+        .categories{
+            display:flex;
+            gap:var(--gap);
+            margin-bottom:0.75rem;
+            overflow-x:auto; 
+            padding-bottom: 5px; 
+            order: 0; 
+        }
+        .cat-btn{
+            white-space:nowrap;
+            padding:0.5rem 0.75rem;
+            border-radius:999px;
+            border:1px solid transparent;
+            background:var(--muted);
+            color: #333;
+            font-weight:600;
+            cursor:pointer;
+            flex:0 0 auto;
+        }
+        .cat-btn.active{background:var(--brand); color:white; border-color:var(--brand-dark)}
 
-		.categories{
-			display:flex;
-			gap:var(--gap);
-			margin-bottom:0.75rem;
-			overflow:auto;
-		}
-		.cat-btn{
-			white-space:nowrap;
-			padding:0.5rem 0.75rem;
-			border-radius:999px;
-			border:1px solid transparent;
-			background:var(--muted);
-			color: #333;
-			font-weight:600;
-			cursor:pointer;
-			flex:0 0 auto;
-		}
-		.cat-btn.active{background:var(--brand); color:white; border-color:var(--brand-dark)}
+        /* Productos (Diseño de 2 columnas por defecto para DESKTOP) */
+        .product-grid{
+            display:grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap:0; 
+            border: 1px solid #eee;
+            border-radius: 8px;
+            overflow: hidden;
+            order: 1; 
+        }
+        .prod{
+            background:white;
+            padding:0.6rem;
+            display:flex;
+            flex-direction:column;
+            justify-content:space-between;
+            min-height:50px;
+            border-right: 1px solid #eee;
+            border-bottom: 1px solid #eee;
+            cursor:pointer;
+            transition:background .12s ease;
+        }
+        .prod:nth-child(2n){ border-right: none; }
+        .prod:hover{ background:var(--muted); }
+        .prod .name{font-weight:700;font-size:0.95rem;margin-bottom:0.15rem}
+        .prod .price{color:var(--brand-dark); font-weight:800}
+        
+        .extras{ order: 2; }
+        
+        /* Tickets Activos (Ajustes de márgenes y padding en los totales) */
+        .ticket {
+            background: var(--ticket-active-bg);
+            border-radius: 0 0 var(--radius) var(--radius); 
+            padding:1rem;
+            box-shadow: var(--shadow);
+            margin-top: -1px; 
+        }
+        
+        /* REFUERZO DE ESTILOS DE PESTAÑAS (CLIENTES) */
+        .ticket-tabs {
+            display: flex;
+            gap: 4px;
+            overflow-x: auto;
+            padding-bottom: 8px; 
+        }
+        .ticket-tab {
+            flex: 0 0 auto;
+            padding: 0.5rem 0.8rem;
+            border-radius: var(--radius) var(--radius) 0 0;
+            border: 1px solid var(--ticket-border);
+            border-bottom: none;
+            background: var(--ticket-bg);
+            color: #555;
+            font-weight: 600;
+            cursor:pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background .15s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border-left: 5px solid rgba(0,0,0,0.1); 
+        }
+        .ticket-tab.active {
+            background: var(--ticket-active-bg);
+            color: var(--text);
+            border-color: var(--brand);
+            border-bottom: 1px solid var(--ticket-active-bg); 
+            z-index: 10;
+        }
+        .close-tab { 
+            background: none; 
+            border: none; 
+            color: #777; 
+            font-weight: 700; 
+            cursor: pointer; 
+            padding: 0; 
+            line-height: 1;
+        }
+        .new-ticket-btn {
+            background: var(--success); 
+            color: white;
+            border-radius: var(--radius) var(--radius) 0 0; 
+            width: 38px;
+            padding: 0.4rem 0;
+            font-size: 1rem;
+            border: none;
+            cursor: pointer;
+            font-weight: 700;
+            flex: 0 0 auto;
+        }
+        
+        /* REFUERZO DE COLORES Y DIVISIÓN EN ÍTEMS DEL TICKET */
+        .ticket .items{
+            max-height:46vh; 
+            overflow:auto; 
+            padding-right:0.25rem;
+            margin-bottom: 10px; 
+            padding-bottom: 5px;
+        }
+        
+        .ticket .item{
+            display:flex;
+            gap:0.6rem;
+            align-items:center;
+            justify-content:space-between;
+            padding:0.5rem; 
+            margin-bottom: 8px; 
+            border-radius: 6px;
+            border-left: 5px solid rgba(0,0,0,0.1); 
+            transition: border-left .3s ease;
+        }
 
-		.product-grid{
-			display:grid;
-			grid-template-columns: repeat(2, 1fr);
-			gap:0.6rem;
-		}
+        .item.banderilla-salchicha { background-color: var(--color-salchicha) !important; border-left-color: var(--brand-dark) !important; }
+        .item.banderilla-combinada { background-color: var(--color-combinada) !important; border-left-color: #007bff !important; }
+        .item.banderilla-queso { background-color: var(--color-queso) !important; border-left-color: #28a745 !important; }
+        .item.extra-item { background-color: var(--color-extra) !important; border-left-color: #777 !important; }
+        
+        /* Controles de cantidad/botones */
+        .qty-controls { display: flex; gap: 4px; align-items: center; }
+        
+        /* ESTILO BOTONES +/- (Redondeados) */
+        .qty-controls button {
+            background:#ddd;
+            border:none;
+            border-radius:50%;
+            width:28px;
+            height:28px;
+            font-weight:700;
+            cursor:pointer;
+            font-size: 1rem;
+            padding: 0;
+            line-height: 1;
+        }
 
-		.prod{
-			background:linear-gradient(180deg,#fff,#fff);
-			border-radius:10px;
-			padding:0.6rem;
-			display:flex;
-			flex-direction:column;
-			justify-content:space-between;
-			min-height:64px;
-			border:1px solid #eee;
-			cursor:pointer;
-			transition:transform .12s ease, box-shadow .12s ease;
-		}
-		.prod:hover{ transform:translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
-		.prod .name{font-weight:700;font-size:0.95rem;margin-bottom:0.35rem}
-		.prod .price{color:var(--brand-dark); font-weight:800}
+        /* ESTADO BOTÓN PREPARAR/LISTO */
+        .done-btn { 
+            border: none; 
+            border-radius: 6px; 
+            padding: 0.4rem 0.6rem; 
+            font-weight: 600; 
+            cursor: pointer; 
+            white-space: nowrap; 
+            transition: background .3s ease;
+            background: var(--success); 
+            color: #fff; 
+        }
+        .item:not(.done) .done-btn { 
+            background: var(--accent); 
+            color: #fff; 
+        }
+        
+        /* Ajuste de márgenes en Totales */
+        .totals{ 
+            margin-top:0.9rem; 
+            padding-bottom: 10px; 
+            border-bottom: 1px solid #eee; 
+            padding-left: 0; 
+            padding-right: 0; 
+        }
+        /* AUMENTO DE ESPACIO ENTRE FILAS DE TOTALES */
+        .totals .row {
+            margin-bottom: 0.8rem; 
+        }
+        .totals .row:last-child {
+            margin-bottom: 0; 
+        }
+        
+        /* RESALTADO DE CANTIDAD PAGADA Y CAMBIO */
+        #cash-paid-change-area {
+            padding: 10px;
+            border: 1px solid #ffcc80; 
+            background: var(--highlight-cash); 
+            border-radius: 8px;
+            margin-top: 0.9rem;
+            margin-bottom: 0.9rem;
+        }
 
-		.extras{
-			margin-top:0.9rem;
-			display:grid; 
-			grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); 
-			gap:0.6rem;
-		}
-		.extras .ext-btn{
-			background:linear-gradient(180deg,#fff,#fff);
-			border-radius:10px;
-			padding:0.6rem;
-			display:flex;
-			flex-direction:column;
-			justify-content:space-between;
-			min-height:64px;
-			border:1px solid #eee;
-			cursor:pointer;
-			transition:transform .12s ease, box-shadow .12s ease;
-			text-align:left; 
-			width:100%; 
-		}
-		.extras .ext-btn:hover{ transform:translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
-		.extras .ext-btn .name{font-weight:700;font-size:0.95rem;margin-bottom:0.35rem}
-		.extras .ext-btn .price{color:var(--brand-dark); font-weight:800}
+        /* AJUSTE PARA BOTÓN "GUARDAR TICKET" */
+        .save-ticket-btn-container {
+            display: flex;
+            gap: 8px;
+            margin-top: 0.9rem;
+        }
+        .save-ticket-btn-container .pay-btn {
+            flex-grow: 1;
+            padding: 0.85rem;
+            border-radius: 12px;
+            background: var(--brand);
+            color: white;
+            font-weight: 800;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 10px 20px rgba(255,107,0,0.18);
+            transition: transform .12s ease;
+        }
 
-		/* --- Tickets --- */
-		.ticket-manager {
-			position: sticky;
-			top: 1rem;
-			height: fit-content;
-		}
+        /* ALINEACIÓN Y DISEÑO DE CANTIDADES EN VENTAS POR PRODUCTO (CORREGIDO) */
+        #sales-summary-list .sale-item {
+            display: flex; /* Asegura el layout horizontal */
+            justify-content: space-between; /* Espacio entre nombre y cantidad */
+            align-items: center;
+            padding: 8px 12px; /* Espacio interno restaurado */
+            margin-bottom: 6px; 
+            border-radius: 6px;
+            border-left: none; /* Asegurar que no hay borde de 5px */
+            /* Separación con el elemento siguiente */
+            border-bottom: 1px dashed rgba(0,0,0,0.1); 
+            padding-bottom: 8px;
+            padding-top: 8px;
+        }
+        
+        /* Elimina el borde y el fondo del contenedor de cantidad */
+        .sale-item .qty {
+            min-width: 30px; 
+            text-align: right !important;
+            display: block; 
+            flex-shrink: 0; 
+            padding: 0; /* Elimina padding que causa el borde */
+            border: none !important; /* ELIMINAR EL BORDE VISUAL */
+            background: none !important; /* ELIMINAR EL FONDO BLANCO */
+            color: var(--brand-dark); /* Mantener el color original del número */
+            font-weight: 800;
+        }
+        .sale-item .name {
+            flex-grow: 1;
+            padding-right: 10px;
+        }
 
-		.ticket-tabs {
-			display: flex;
-			gap: 4px;
-			overflow-x: auto;
-			padding-bottom: 8px; 
-		}
-		.ticket-tab {
-			flex: 0 0 auto;
-			padding: 0.5rem 0.8rem;
-			border-radius: var(--radius) var(--radius) 0 0;
-			border: 1px solid var(--ticket-border);
-			border-bottom: none;
-			background: var(--ticket-bg);
-			color: #555;
-			font-weight: 600;
-			cursor:pointer;
-			display: flex;
-			align-items: center;
-			gap: 8px;
-			transition: background .15s ease;
-			box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-			border-left: 5px solid rgba(0,0,0,0.1); 
-		}
-		.ticket-tab.active {
-			background: var(--ticket-active-bg);
-			color: var(--text);
-			border-color: var(--brand);
-			border-bottom: 1px solid var(--ticket-active-bg); 
-			z-index: 10;
-		}
-		.ticket-tab:hover:not(.active) { background: #f0f0f0; }
+        .sale-item.banderilla-salchicha { background-color: var(--color-salchicha); border-left-color: var(--brand-dark); }
+        .sale-item.banderilla-combinada { background-color: var(--color-combinada); border-left-color: #007bff; }
+        .sale-item.banderilla-queso { background-color: var(--color-queso); border-left-color: #28a745; }
+        .sale-item.extra-item { background-color: var(--color-extra); border-left-color: #777; }
+        
+        /* REFUERZO DE DIVISIONES EN TICKETS GUARDADOS (CORREGIDO) */
+        #summary-list .summary-item {
+            padding: 10px;
+            background: var(--muted);
+            border-radius: 8px;
+            margin-bottom: 12px; 
+            border-left: 5px solid var(--brand); 
+            /* REFUERZO: Borde inferior más fuerte para la separación del bloque */
+            border-bottom: 2px solid rgba(0,0,0,0.1); 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05); 
+            cursor: pointer;
+        }
 
-		/* Colores de las pestaas activas */
-		.ticket-tab.banderilla-salchicha { border-left-color: var(--brand-dark); }
-		.ticket-tab.banderilla-combinada { border-left-color: #007bff; }
-		.ticket-tab.banderilla-queso { border-left-color: #28a745; }
-		.ticket-tab.banderilla-salchicha.active { border-color: var(--brand-dark); border-bottom: 1px solid var(--ticket-active-bg); }
-		.ticket-tab.banderilla-combinada.active { border-color: #007bff; border-bottom: 1px solid var(--ticket-active-bg); }
-		.ticket-tab.banderilla-queso.active { border-color: #28a745; border-bottom: 1px solid var(--ticket-active-bg); }
 
-		.new-ticket-btn {
-			background: var(--success);
-			color: white;
-			padding: 0.5rem 0.8rem;
-			border-radius: var(--radius) var(--radius) 0 0;
-			border: none;
-			cursor: pointer;
-			font-weight: 700;
-			flex: 0 0 auto;
-		}
-		.close-tab { 
-			background: none; 
-			border: none; 
-			color: #777; 
-			font-weight: 700; 
-			cursor: pointer; 
-			padding: 0; 
-			line-height: 1;
-		}
-		.ticket-tab.active .close-tab { color: var(--danger); }
+        /* --- RESPONSIVIDAD MÓVIL (iPhone) --- */
+        @media (max-width: 880px) {
+            .wrap { grid-template-columns: 1fr; gap: 1rem; }
+            .ticket-manager { order: 1; position: relative; top: 0; }
+            .panel[aria-label="Productos"] { order: 2; }
+            
+            .product-grid { 
+                grid-template-columns: repeat(3, 1fr); 
+            }
+            .prod:nth-child(2n){ border-right: 1px solid #eee; } 
+            .prod:nth-child(3n) { border-right: none; } 
+        }
 
-		.ticket {
-			background: var(--ticket-active-bg);
-			border-radius: 0 0 var(--radius) var(--radius); 
-			padding:1rem;
-			box-shadow: var(--shadow);
-			margin-top: -1px; 
-		}
+        @media (max-width: 520px) {
+            /* Se mantienen los estilos de compacidad anteriores */
+            .totals .row { margin-bottom: 0.4rem; } 
+        }
 
-		.ticket .items{max-height:46vh; overflow:auto; padding-right:0.25rem}
-		
-		.ticket .item{
-			display:flex;
-			gap:0.6rem;
-			align-items:center;
-			justify-content:space-between;
-			padding:0.5rem; 
-			margin-bottom: 4px; 
-			border-radius: 6px;
-			border-left: 5px solid rgba(0,0,0,0.1); 
-			transition: border-left .3s ease;
-		}
+        /* --- ESTILOS DE IMPRESIÓN (PDF/Recibo) --- */
+        @media print {
+            body > .wrap > header,
+            body > .wrap > .panel,
+            body > .wrap > aside, 
+            .footer-note {
+                display: none !important;
+            }
+            
+            @page {
+                size: 80mm auto; 
+                margin: 0;
+            }
 
-		/* Colores por tipo de relleno de tem */
-		.item.banderilla-salchicha { background-color: var(--color-salchicha); border-left-color: var(--brand-dark); }
-		.item.banderilla-combinada { background-color: var(--color-combinada); border-left-color: #007bff; }
-		.item.banderilla-queso { background-color: var(--color-queso); border-left-color: #28a745; }
-		.item.extra-item { background-color: var(--color-extra); }
-
-		/* Estilo para el estado 'HECHO' */
-		.item.done { opacity: 0.7; border-left: 5px solid var(--success); }
-		.item.done .done-btn { background: var(--success); color: white; }
-		
-		/* --- Totales y Botones --- */
-		.totals{
-			margin-top:0.6rem;
-			display:flex;
-			flex-direction:column;
-			gap:0.35rem;
-		}
-		.totals .row{display:flex;justify-content:space-between; font-weight:700; font-size:1rem}
-		.pay-btn{
-			margin-top:0.9rem;
-			width:100%;
-			padding:0.85rem;
-			border-radius:12px;
-			background:var(--brand);
-			color:white;
-			font-weight:800;
-			border:none;
-			cursor:pointer;
-			box-shadow: 0 10px 20px rgba(255,107,0,0.18);
-			transition:transform .12s ease;
-		}
-		.pay-btn:active{ transform:translateY(2px) }
-
-		/* --- Resumen de Ventas por Producto (Inventario) --- */
-		#sales-summary-list {
-			display: grid;
-			gap: 10px;
-		}
-		.sale-item {
-			padding: 8px 12px;
-			background: var(--muted);
-			border-radius: 6px;
-			display: flex;
-			justify-content: space-between;
-			align-items: center;
-			font-size: 0.95rem;
-			border-left: 5px solid rgba(0,0,0,0.1); 
-		}
-		/* Colores para las ventas por producto */
-		.sale-item.banderilla-salchicha { background-color: var(--color-salchicha); border-left-color: var(--brand-dark); }
-		.sale-item.banderilla-combinada { background-color: var(--color-combinada); border-left-color: #007bff; }
-		.sale-item.banderilla-queso { background-color: var(--color-queso); border-left-color: #28a745; }
-		.sale-item.extra-item { background-color: var(--color-extra); border-left-color: #777; }
-
-		.sale-item .name { font-weight: 600; color: #444; }
-		.sale-item .qty {
-			font-weight: 800;
-			color: var(--brand-dark);
-			background: white;
-			padding: 2px 8px;
-			border-radius: 4px;
-			border: 1px solid #ddd;
-		}
-
-		/* --- Responsividad --- */
-		@media (max-width: 880px) {
-			/* 1. Cambiar el contenedor principal a una sola columna */
-			.wrap {
-				grid-template-columns: 1fr; 
-				gap: 2rem; 
-			}
-
-			/* 2. Asegurar que el ticket manager se muestre primero en mviles */
-			.ticket-manager {
-				order: 1; 
-				position: relative; 
-				top: 0;
-			}
-
-			/* 3. Mover la seccin de productos debajo del ticket */
-			.panel[aria-label="Productos"] {
-				order: 2; 
-			}
-
-			/* 4. Ajustar la rejilla de productos en tabletas */
-			.product-grid {
-				grid-template-columns: repeat(3, 1fr); 
-				gap: 0.5rem;
-			}
-
-			/* 5. Optimizar el panel de Tickets para mviles */
-			.ticket .items {
-				max-height: 40vh; 
-			}
-
-			/* 6. Ajustar el header del ticket para evitar desbordamiento */
-			#client-name-input {
-				min-width: 100px;
-				font-size: 0.9rem;
-			}
-		}
-
-		@media (max-width: 520px) {
-			.product-grid {
-				grid-template-columns: repeat(2, 1fr); 
-			}
-			.ticket-tabs {
-				padding-bottom: 0.5rem;
-			}
-			.ticket-tab, .new-ticket-btn {
-				padding: 0.4rem 0.6rem;
-				font-size: 0.8rem;
-			}
-			.ticket .item {
-				flex-wrap: wrap; 
-			}
-			.ticket .item .meta {
-				flex-basis: 100%; 
-				margin-bottom: 5px;
-			}
-			.ticket .item > div:last-child {
-				justify-content: space-between;
-				width: 100%;
-			}
-			.done-btn {
-				margin-right: 4px;
-				padding: 0.4rem;
-				font-size: 0.75rem;
-			}
-		}
-
-		/* --- Utilidades --- */
-		.muted{color:#777;font-size:0.9rem}
-		.center{display:flex;align-items:center;justify-content:center}
-		.footer-note{
-			grid-column:1 / -1;
-			text-align:center;
-			margin-top:0.6rem;
-			color:#888;
-			font-size:0.85rem;
-		}
-		.ticket .empty { padding:1rem; text-align:center; color:#666 }
-
-	</style>
+            #receipt-print-area {
+                display: block !important;
+                width: 300px; 
+                margin: 0 auto;
+                padding: 10px;
+                background: white;
+                font-family: monospace; 
+                font-size: 10pt;
+                color: #000;
+            }
+            
+            .print-logo { text-align: center; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px dashed #000; }
+            .print-logo .logo-box { width: 30px; height: 30px; border-radius: 5px; background: linear-gradient(135deg,var(--brand),var(--accent)); display: inline-flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 0.8rem; margin-right: 5px; }
+            .print-header { font-size: 12pt; font-weight: bold; }
+            .print-meta { font-size: 8pt; line-height: 1.2; margin-bottom: 10px; }
+            .print-items { border-top: 1px dashed #000; padding-top: 5px; padding-bottom: 5px; margin-bottom: 5px; font-size: 9pt; }
+            .print-item { display: flex; justify-content: space-between; line-height: 1.5; }
+            .print-item-qty-name { flex-grow: 1; margin-right: 10px; }
+            .print-item-total { width: 60px; text-align: right; }
+            .print-totals { border-top: 1px dashed #000; padding-top: 5px; }
+            .print-total-row { display: flex; justify-content: space-between; font-size: 10pt; font-weight: bold; }
+            .print-final-total { font-size: 14pt !important; margin-top: 5px; }
+            .print-note { border-top: 1px dashed #000; padding-top: 5px; margin-top: 5px; text-align: center; font-size: 8pt; }
+        }
+    </style>
 </head>
 <body>
 
 <main class="wrap" role="main" aria-labelledby="title">
-	<header class="app-header">
-		<div class="brand">
-			<div class="logo">AB</div>
-			<div>
-				<h1 id="title">Astro Bite</h1>
-				<p class="sub">Caja rpida  Toma pedidos en segundos</p>
-			</div>
-		</div>
-		<div style="text-align:right">
-			<p class="muted" style="margin:0">Sucursal: Central</p>
-			<p class="muted" style="margin:0">Usuario: Equipo</p>
-		</div>
-	</header>
+    <header class="app-header">
+        <div class="brand">
+            <div class="logo">AB</div>
+            <div>
+                <h1 id="title">Astro Bite</h1>
+                <p class="sub">Caja rápida</p>
+            </div>
+        </div>
+    </header>
 
-	<section class="panel" aria-label="Productos">
-		<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.6rem">
-			<h3 style="margin:0">Seleccionar producto</h3>
-			<div class="muted">Toca para aadir</div>
-		</div>
+    <aside class="ticket-manager" aria-label="Tickets Activos">
+        <div class="ticket-tabs" id="ticket-tabs">
+            <button class="new-ticket-btn" onclick="newTicket()">+</button> 
+        </div>
 
-		<div class="categories" role="tablist" aria-label="Categoras">
-			<button class="cat-btn active" data-cat="Salchicha">Salchicha</button>
-			<button class="cat-btn" data-cat="Combinada">Combinada</button>
-			<button class="cat-btn" data-cat="Queso">Queso</button>
-			<button class="cat-btn" data-cat="Extras">Extras</button>
-			</div>
+        <div class="ticket" aria-label="Ticket Actual">
+            <div style="display:flex; align-items:center; margin-bottom:0.6rem; border-bottom:1px solid #eee; padding-bottom:8px">
+                <h2 style="margin:0; font-size:1.1rem; min-width:80px">Cliente:</h2>
+                <input type="text" id="client-name-input" value="Sin Nombre" 
+                    style="flex-grow:1; padding:0.5rem; border:1px solid #ddd; border-radius:6px; font-weight:700; font-size:1rem;" />
+            </div>
+            
+            <div class="items" role="list" aria-live="polite"></div>
 
-		<div class="product-grid" id="product-grid" role="list"></div>
-		<div class="extras" id="extras-grid"></div>
+            <div class="totals" aria-hidden="false">
+                <div class="row"><span>Subtotal</span><span id="subtotal">$0.00</span></div>
+                
+                <div class="row" style="font-size:1.1rem"><span>Total</span><span id="total">$0.00</span></div>
+            </div>
 
-		<section id="daily-summary" class="panel" style="margin-top: 1rem; padding: 1rem; display:none;">
-			<h3 style="margin-top:0;">Resumen Diario (Tickets)</h3>
-			<div id="summary-list" style="max-height: 200px; overflow-y: auto;">
-				<p class="muted center" id="summary-empty-message">No hay tickets guardados hoy.</p>
-			</div>
-		</section>
+            <div id="cash-paid-change-area">
+                <div id="payment-cash-details" style="display:none;">
+                    <label style="display:block;font-size:0.9rem;margin-bottom:0.3rem">Cantidad Pagada</label>
+                    <input type="number" id="cash-paid-input" placeholder="0.00" step="any" min="0" 
+                        style="width:100%;padding:0.55rem;border-radius:8px;border:1px solid #ddd; font-weight:700;" oninput="updateChange()">
+                    <div class="row" style="margin-top:0.5rem"><span>Cambio</span><span id="cash-change">$0.00</span></div>
+                </div>
+            </div>
 
-		<section id="sales-summary" class="panel" style="margin-top: 1rem; padding: 1rem; display:none;">
-			<h3 style="margin-top:0;">Ventas por Producto (Total: <span id="daily-sales-total">$0.00</span>)</h3>
-			
-			<button onclick="resetAndExport()" 
-				style="width: 100%; padding: 0.5rem; background: var(--danger); color: white; border: none; border-radius: 6px; margin-bottom: 10px; cursor: pointer; font-weight:700">
-				Reiniciar Cuentas y Exportar Reporte (.xlsx)
-			</button>
+            <div style="margin-top:0.9rem">
+                <label style="display:block;font-size:0.9rem;margin-bottom:0.3rem">Forma de Pago</label>
+                <select id="payment-method-select" 
+                    style="width:100%;padding:0.55rem;border-radius:8px;border:1px solid #eee" 
+                    onchange="toggleCashDetails()">
+                    <option value="Efectivo">Efectivo</option>
+                    <option value="Tarjeta">Tarjeta</option>
+                    <option value="Transferencia">Transferencia</option>
+                </select>
+            </div>
+            
+            <div style="margin-top:0.6rem">
+                <label style="display:block;font-size:0.9rem;margin-bottom:0.3rem">Nota</label>
+                <textarea id="ticket-note-input" placeholder="Ej: para llevar, sin sal" rows="2" style="width:100%;padding:0.55rem;border-radius:8px;border:1px solid #eee; resize:vertical;"></textarea>
+            </div>
+            
+            <div class="save-ticket-btn-container">
+                <button class="pay-btn" type="button" onclick="saveTicket()">Guardar ticket</button>
+                <button class="pay-btn" type="button" onclick="prepareAndPrintReceipt()" style="flex-grow: 0; width: 44px; background: #007bff; font-size: 1.2rem;" title="Imprimir Recibo">⎙</button>
+            </div>
 
-			<div id="sales-summary-list">
-				<p class="muted center">No hay productos vendidos hoy.</p>
-			</div>
-		</section>
-	</section>
+        </div>
+    </aside>
 
-	<aside class="ticket-manager" aria-label="Tickets Activos">
-		<div class="ticket-tabs" id="ticket-tabs">
-			<button class="new-ticket-btn" onclick="newTicket()"> Nuevo Ticket</button>
-		</div>
+    <section class="panel" aria-label="Productos">
+        <div id="product-panel-content">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.6rem">
+                <h3 style="margin:0">Seleccionar producto</h3>
+                <div class="muted">Toca para añadir</div>
+            </div>
 
-		<div class="ticket" aria-label="Ticket Actual">
-			<div style="display:flex; align-items:center; margin-bottom:0.6rem; border-bottom:1px solid #eee; padding-bottom:8px">
-				<h2 style="margin:0; font-size:1.1rem; min-width:80px">Cliente:</h2>
-				<input type="text" id="client-name-input" value="Sin Nombre" 
-					style="flex-grow:1; padding:0.5rem; border:1px solid #ddd; border-radius:6px; font-weight:700; font-size:1rem;" />
-			</div>
-			
-			<div class="items" role="list" aria-live="polite"></div>
+            <div class="categories" role="tablist" aria-label="Categorías">
+                <button class="cat-btn active" data-cat="Salchicha">Salchicha</button>
+                <button class="cat-btn" data-cat="Combinada">Combinada</button>
+                <button class="cat-btn" data-cat="Queso">Queso</button>
+                <button class="cat-btn" data-cat="Extras">Extras</button>
+            </div>
 
-			<div class="totals" aria-hidden="false">
-				<div class="row"><span>Subtotal</span><span id="subtotal">$0.00</span></div>
-				<div class="row"><span>IVA (0%)</span><span>$0.00</span></div>
-				<div class="row" style="font-size:1.1rem"><span>Total</span><span id="total">$0.00</span></div>
-			</div>
+            <div class="product-grid" id="product-grid" role="list"></div>
+            <div class="extras" id="extras-grid"></div>
+        </div>
 
-			<div style="margin-top:0.9rem">
-				<label style="display:block;font-size:0.9rem;margin-bottom:0.3rem">Forma de Pago</label>
-				<select id="payment-method-select" style="width:100%;padding:0.55rem;border-radius:8px;border:1px solid #eee">
-					<option value="Efectivo">Efectivo</option>
-					<option value="Tarjeta">Tarjeta</option>
-					<option value="Transferencia">Transferencia</option>
-				</select>
-			</div>
-			
-			<div style="margin-top:0.6rem">
-				<label style="display:block;font-size:0.9rem;margin-bottom:0.3rem">Nota</label>
-				<textarea id="ticket-note-input" placeholder="Ej: para llevar, sin sal" rows="2" style="width:100%;padding:0.55rem;border-radius:8px;border:1px solid #eee; resize:vertical;"></textarea>
-			</div>
+        <section id="daily-summary" class="panel" style="margin-top: 1rem; padding: 1rem; display:none;">
+            <h3 style="margin-top:0;">Resumen Diario (Tickets)</h3>
+            
+            <div id="read-only-ticket-container"></div>
+            
+            <div id="summary-list" style="max-height: 200px; overflow-y: auto;">
+                <p class="muted center" id="summary-empty-message">No hay tickets guardados hoy.</p>
+            </div>
+        </section>
 
-			<button class="pay-btn" type="button" onclick="saveTicket()">Guardar ticket</button>
+        <section id="sales-summary" class="panel" style="margin-top: 1rem; padding: 1rem; display:none;">
+            <h3 style="margin-top:0;">Ventas por Producto (Total: <span id="daily-sales-total">$0.00</span>)</h3>
+            
+            <button onclick="resetAndExport()" 
+                style="width: 100%; padding: 0.5rem; background: var(--danger); color: white; border: none; border-radius: 6px; margin-bottom: 10px; cursor: pointer; font-weight:700">
+                Reiniciar Cuentas e Imprimir Informe (.xlsx)
+            </button>
 
-		</div>
-	</aside>
+            <div id="sales-summary-list">
+                <p class="muted center">No hay productos vendidos hoy.</p>
+            </div>
+        </section>
+    </section>
 
-	<div class="footer-note">Diseo rpido  listo para conectar a base de datos y back-end.</div>
+    <div id="receipt-print-area" style="display:none;"></div>
 </main>
 
 <script>
 const productsData = {
-	Salchicha:[{name:"Ramen",price:45, relleno:"Salchicha"},{name:"Cruji",price:45, relleno:"Salchicha"},{name:"Papa",price:50, relleno:"Salchicha"},{name:"Cheetos",price:55, relleno:"Salchicha"},{name:"Flamin Hot",price:55, relleno:"Salchicha"}],
-	Combinada:[{name:"Ramen",price:50, relleno:"Combinada"},{name:"Cruji",price:50, relleno:"Combinada"},{name:"Papa",price:55, relleno:"Combinada"},{name:"Cheetos",price:60, relleno:"Combinada"},{name:"Flamin Hot",price:60, relleno:"Combinada"}],
-	Queso:[{name:"Ramen",price:55, relleno:"Queso"},{name:"Cruji",price:55, relleno:"Queso"},{name:"Papa",price:60, relleno:"Queso"},{name:"Cheetos",price:65, relleno:"Queso"},{name:"Flamin Hot",price:65, relleno:"Queso"}],
-	Extras:[{name:"Orden de Papas",price:40, isExtra:true}, {name:"Salchipulpos",price:35, isExtra:true}]
+    Salchicha:[{name:"Ramen",price:45, relleno:"Salchicha"},{name:"Cruji",price:45, relleno:"Salchicha"},{name:"Papa",price:50, relleno:"Salchicha"},{name:"Cheetos",price:55, relleno:"Salchicha"},{name:"Flamin Hot",price:55, relleno:"Salchicha"}],
+    Combinada:[{name:"Ramen",price:50, relleno:"Combinada"},{name:"Cruji",price:50, relleno:"Combinada"},{name:"Papa",price:55, relleno:"Combinada"},{name:"Cheetos",price:60, relleno:"Combinada"},{name:"Flamin Hot",price:60, relleno:"Combinada"}],
+    Queso:[{name:"Ramen",price:55, relleno:"Queso"},{name:"Cruji",price:55, relleno:"Queso"},{name:"Papa",price:60, relleno:"Queso"},{name:"Cheetos",price:65, relleno:"Queso"},{name:"Flamin Hot",price:65, relleno:"Queso"}],
+    Extras:[{name:"Órden de Papas",price:40, isExtra:true}, {name:"Salchipulpos",price:35, isExtra:true}]
 };
 
-// --- ARREGLOS DE DATOS ---
+// --- ARREGLOS DE DATOS y ELEMENTOS DOM ---
 let activeTickets = []; 
 let activeTicketIndex = -1; 
 let dailySummaryTickets = []; 
 let productSalesSummary = {}; 
 let papasSalesSummary = 0; 
 
-// --- ELEMENTOS DOM ---
 const ticketTabsEl = document.getElementById('ticket-tabs');
 const clientNameInputEl = document.getElementById('client-name-input');
 const ticketNoteInputEl = document.getElementById('ticket-note-input');
@@ -515,498 +564,551 @@ const totalEl=document.getElementById('total');
 const summaryListEl = document.getElementById('summary-list');
 const salesSummaryListEl = document.getElementById('sales-summary-list');
 const dailySalesTotalEl = document.getElementById('daily-sales-total');
+const cashPaidInputEl = document.getElementById('cash-paid-input');
+const cashChangeEl = document.getElementById('cash-change');
+const paymentCashDetailsEl = document.getElementById('payment-cash-details');
+const readOnlyTicketContainerEl = document.getElementById('read-only-ticket-container');
+const receiptPrintAreaEl = document.getElementById('receipt-print-area');
 
 
-// --- PERSISTENCIA DE DATOS (LOCALSTORAGE) ---
-
+// --- PERSISTENCIA DE DATOS (sin cambios) ---
 function saveAllData() {
-    // Guardamos los datos clave para la persistencia
     localStorage.setItem('dailySummaryTickets', JSON.stringify(dailySummaryTickets));
     localStorage.setItem('productSalesSummary', JSON.stringify(productSalesSummary));
     localStorage.setItem('papasSalesSummary', papasSalesSummary); 
 }
 
 function loadAllData() {
-    // Cargamos los datos guardados, si existen
     const storedTickets = localStorage.getItem('dailySummaryTickets');
-    if (storedTickets) {
-        dailySummaryTickets = JSON.parse(storedTickets);
-    }
-    
+    if (storedTickets) { dailySummaryTickets = JSON.parse(storedTickets); }
     const storedSales = localStorage.getItem('productSalesSummary');
-    if (storedSales) {
-        productSalesSummary = JSON.parse(storedSales);
-    }
-    
+    if (storedSales) { productSalesSummary = JSON.parse(storedSales); }
     const storedPapas = localStorage.getItem('papasSalesSummary');
-    if (storedPapas) {
-        papasSalesSummary = parseInt(storedPapas) || 0; 
+    if (storedPapas) { papasSalesSummary = parseInt(storedPapas) || 0; }
+}
+
+// --- LÓGICA DE PAGO ---
+
+function toggleCashDetails() {
+    const isEfectivo = paymentMethodSelectEl.value === 'Efectivo';
+    paymentCashDetailsEl.style.display = isEfectivo ? 'block' : 'none';
+    
+    const cashArea = document.getElementById('cash-paid-change-area');
+    if (isEfectivo) {
+        cashArea.style.padding = '10px';
+        cashArea.style.border = '1px solid #ffcc80';
+        cashArea.style.background = 'var(--highlight-cash)';
+    } else {
+        cashArea.style.padding = '0';
+        cashArea.style.border = 'none';
+        cashArea.style.background = 'none';
+    }
+
+    if (!isEfectivo) {
+        cashPaidInputEl.value = '';
+        cashChangeEl.textContent = '$0.00';
+    } else {
+        updateChange();
     }
 }
 
+function updateChange() {
+    const total = parseFloat(totalEl.textContent.replace('$', '')) || 0;
+    const paid = parseFloat(cashPaidInputEl.value) || 0;
+    const change = Math.max(0, paid - total);
+    cashChangeEl.textContent = `$${change.toFixed(2)}`;
+}
 
-// --- GESTIN DE TICKETS ---
+// --- GESTIÓN DE TICKETS ---
 
-// Funcin para crear un nuevo ticket
 function newTicket(defaultName) {
-	const name = prompt("Introduce el nombre del cliente para este ticket:", defaultName || `Cliente ${activeTickets.length + 1}`);
-	const finalName = name === null ? `Cliente ${activeTickets.length + 1}` : (name.trim() || `Cliente ${activeTickets.length + 1}`);
-
-	const newTicket = {
-		id: Date.now(),
-		name: finalName,
-		items: [],
-		note: '',
-		paymentMethod: 'Efectivo' 
-	};
-	activeTickets.push(newTicket);
-	activeTicketIndex = activeTickets.length - 1; 
-	renderTabs();
-	renderTicket();
+    const finalName = defaultName || `Cliente ${activeTickets.length + 1}`; 
+    const newTicket = {
+        id: Date.now(),
+        name: finalName,
+        items: [],
+        note: '',
+        paymentMethod: 'Efectivo',
+        paid: 0, 
+        change: 0 
+    };
+    activeTickets.push(newTicket);
+    activeTicketIndex = activeTickets.length - 1; 
+    renderTabs();
+    renderTicket();
+    toggleCashDetails();
+    readOnlyTicketContainerEl.style.display = 'none'; 
 }
 
 function selectTicket(index) {
-	activeTicketIndex = index;
-	renderTabs();
-	renderTicket();
+    activeTicketIndex = index;
+    renderTabs();
+    renderTicket();
+    toggleCashDetails();
+    readOnlyTicketContainerEl.style.display = 'none'; 
 }
 
-// Funcin para crear la clave del producto base (SIN Papas Extras)
-function createProductKey(item) {
-	let key = item.name;
-	let relleno = item.relleno;
-
-	if (relleno) {
-		key = `${relleno} ${item.name}`;
-	} else {
-		relleno = 'extra';
-	}
-	
-	return { key, relleno: relleno.toLowerCase() };
-}
-
-// Funcin para guardar (cerrar) el ticket (ACTUALIZADA: CONTEO DOBLE)
-function saveTicket() {
-	if (activeTicketIndex === -1) return alert("No hay ticket activo para guardar.");
-	
-	const currentTicket = activeTickets[activeTicketIndex];
-	if (currentTicket.items.length === 0) {
-		alert(`El ticket de "${currentTicket.name}" est vaco. No se guardar.`);
-		removeTicket(activeTicketIndex);
-		return;
-	}
-
-	const total = calculateTotal(currentTicket.items);
-
-	// 1. Actualizar el Resumen de Ventas por Producto y Papas (Lgica de separacin)
-	currentTicket.items.forEach(item => {
-		const { key } = createProductKey(item);
-
-        // a) Contar el producto base (banderilla o extra)
-		productSalesSummary[key] = (productSalesSummary[key] || 0) + item.qty;
-		
-        // b) Contar las Papas Extras por separado, si las tiene
-		if (item.papas || item.papasExtra) {
-			papasSalesSummary += item.qty;
-		}
-	});
-	renderSalesSummary();
-
-	// 2. Guardar el ticket en el resumen diario
-	const ticketToSave = {
-		...currentTicket,
-		total: total,
-		date: new Date().toLocaleString()
-	};
-	dailySummaryTickets.push(ticketToSave);
-	renderDailySummary(); 
-
-	// 3. Notificacin y ELIMINACIN del TPV
-	alert(`Ticket de "${currentTicket.name}" guardado. Total: $${total.toFixed(2)}. (Simulacin de cierre de venta)`);
-	
-	// 4. Guardar los datos en el navegador
-	saveAllData(); 
-	
-	// 5. Llamada a removeTicket para eliminarlo de activos y forzar el refresco
-	removeTicket(activeTicketIndex, true); 
-}
-
-// Funcin para eliminar un ticket (Corregida la lgica de refresco)
 function removeTicket(index, isSave = false) {
-	if (!isSave && !confirm(`Ests seguro de que quieres eliminar el ticket de "${activeTickets[index].name}"?`)) {
-		return;
-	}
-	
-	activeTickets.splice(index, 1);
-	
-	saveAllData(); 
-	
-	if (activeTickets.length === 0) {
-		activeTicketIndex = -1;
-		newTicket('Cliente 1'); 
-	} else {
-		if (index === activeTicketIndex) {
-			activeTicketIndex = Math.max(0, activeTickets.length - 1);
-		} else if (index < activeTicketIndex) {
-			activeTicketIndex--; 
-		}
-		renderTabs();
-		renderTicket();
-	}
+    if (!isSave && !confirm(`¿Estás seguro de que quieres eliminar el ticket de "${activeTickets[index].name}"?`)) {
+        return;
+    }
+    activeTickets.splice(index, 1);
+    saveAllData(); 
+    if (activeTickets.length === 0) {
+        activeTicketIndex = -1;
+        newTicket('Cliente 1'); 
+    } else {
+        if (index === activeTicketIndex) {
+            activeTicketIndex = Math.max(0, activeTickets.length - 1);
+        } else if (index < activeTicketIndex) {
+            activeTicketIndex--; 
+        }
+        renderTabs();
+        renderTicket();
+    }
+}
+
+function saveTicket() {
+    if (activeTicketIndex === -1) return alert("No hay ticket activo para guardar.");
+    const currentTicket = activeTickets[activeTicketIndex];
+    if (currentTicket.items.length === 0) {
+        alert(`El ticket de "${currentTicket.name}" está vacío. No se guardará.`);
+        removeTicket(activeTicketIndex);
+        return;
+    }
+
+    const total = calculateTotal(currentTicket.items);
+    
+    currentTicket.paymentMethod = paymentMethodSelectEl.value;
+    currentTicket.paid = parseFloat(cashPaidInputEl.value) || (currentTicket.paymentMethod !== 'Efectivo' ? total : 0);
+    currentTicket.change = parseFloat(cashChangeEl.textContent.replace('$', '')) || 0;
+
+    if (currentTicket.paymentMethod === 'Efectivo' && currentTicket.paid < total) {
+        return alert("Error: La cantidad pagada en efectivo es insuficiente.");
+    }
+
+    currentTicket.items.forEach(item => {
+        const { key } = createProductKey(item);
+        productSalesSummary[key] = (productSalesSummary[key] || 0) + item.qty;
+        if (item.papas || (item.papasExtra && item.name !== 'Órden de Papas')) {
+            papasSalesSummary += item.qty;
+        }
+    });
+    renderSalesSummary();
+
+    const ticketToSave = { 
+        ...currentTicket, 
+        total: total, 
+        date: new Date().toLocaleString()
+    };
+    dailySummaryTickets.push(ticketToSave);
+    renderDailySummary(); 
+    alert(`Ticket de "${currentTicket.name}" guardado. Total: $${total.toFixed(2)}. Cambio: $${currentTicket.change.toFixed(2)}. (Simulación de cierre de venta)`);
+    saveAllData(); 
+    removeTicket(activeTicketIndex, true); 
 }
 
 function renderTabs() {
-	ticketTabsEl.innerHTML = '';
-	
-	activeTickets.forEach((t, i) => {
-		const tab = document.createElement('button');
-		const firstItem = t.items.find(item => !item.isExtra);
-		let tabColorClass = '';
-		if (firstItem) {
-			tabColorClass = `banderilla-${firstItem.relleno.toLowerCase()}`;
-		}
-
-		tab.className = `ticket-tab ${i === activeTicketIndex ? 'active' : ''} ${tabColorClass}`;
-		tab.setAttribute('data-index', i);
-		tab.onclick = () => selectTicket(i);
-		
-		tab.innerHTML = `<span>${t.name} (${t.items.length})</span>`;
-		
-		const closeBtn = document.createElement('button');
-		closeBtn.className = 'close-tab';
-		closeBtn.innerHTML = ''; 
-		closeBtn.onclick = (e) => {
-			e.stopPropagation(); 
-			removeTicket(i);
-		};
-		tab.appendChild(closeBtn);
-		
-		ticketTabsEl.appendChild(tab);
-	});
-	
-	const newBtn = document.createElement('button');
-	newBtn.className = 'new-ticket-btn';
-	newBtn.textContent = '+ Nuevo Ticket';
-	newBtn.onclick = newTicket;
-	ticketTabsEl.appendChild(newBtn);
+    const tabsContainer = ticketTabsEl;
+    const tabsToRemove = tabsContainer.querySelectorAll('.ticket-tab');
+    tabsToRemove.forEach(tab => tab.remove());
+    
+    activeTickets.forEach((t, i) => {
+        const tab = document.createElement('button');
+        const firstItem = t.items.find(item => !item.isExtra);
+        let tabColorClass = '';
+        if (firstItem) {
+            tabColorClass = `banderilla-${firstItem.relleno.toLowerCase()}`;
+        }
+        tab.className = `ticket-tab ${i === activeTicketIndex ? 'active' : ''} ${tabColorClass}`;
+        tab.setAttribute('data-index', i);
+        tab.onclick = () => selectTicket(i);
+        tab.innerHTML = `<span>${t.name} (${t.items.length})</span>`; 
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'close-tab';
+        closeBtn.innerHTML = '×'; 
+        closeBtn.onclick = (e) => {
+            e.stopPropagation(); 
+            removeTicket(i);
+        };
+        tab.appendChild(closeBtn);
+        ticketTabsEl.insertBefore(tab, ticketTabsEl.querySelector('.new-ticket-btn'));
+    });
 }
 
+// --- LÓGICA DE PRODUCTOS y RENDERIZADO ---
+function createProductKey(item) {
+    let key = item.name;
+    let relleno = item.relleno;
+    if (relleno) {
+        key = `${relleno} ${item.name}`;
+    } else {
+        relleno = 'extra';
+    }
+    return { key, relleno: relleno.toLowerCase() };
+}
 
-// --- LGICA DE PRODUCTOS ---
+function calculateTotal(items) {
+    let subtotal = 0;
+    items.forEach(item => {
+        let price = item.price;
+        if (item.papas) price += 15;
+        if (item.papasExtra) price += 15; 
+        subtotal += price * item.qty;
+    });
+    return subtotal;
+}
 
 function changeQuantity(itemIndex, delta) {
-	const ticket = activeTickets[activeTicketIndex];
-	const item = ticket.items[itemIndex];
-	item.qty += delta;
-
-	if (item.qty <= 0) {
-		removeItem(itemIndex);
-	} else {
-		renderTicket();
-		renderTabs(); 
-	}
+    const ticket = activeTickets[activeTicketIndex];
+    const item = ticket.items[itemIndex];
+    item.qty += delta;
+    if (item.qty <= 0) { removeItem(itemIndex); } else { renderTicket(); renderTabs(); }
 }
 
 function removeItem(itemIndex){ 
-	const ticket = activeTickets[activeTicketIndex];
-	ticket.items.splice(itemIndex,1);
-	renderTabs(); 
-	renderTicket();
+    const ticket = activeTickets[activeTicketIndex];
+    ticket.items.splice(itemIndex,1);
+    renderTabs(); 
+    renderTicket();
 }
 
 function togglePapas(itemIndex){
-	const ticket = activeTickets[activeTicketIndex];
-	ticket.items[itemIndex].papas=!ticket.items[itemIndex].papas;
-	renderTicket();
+    const ticket = activeTickets[activeTicketIndex];
+    ticket.items[itemIndex].papas=!ticket.items[itemIndex].papas;
+    renderTicket();
 }
 
 function togglePapasExtra(itemIndex){
-	const ticket = activeTickets[activeTicketIndex];
-	ticket.items[itemIndex].papasExtra = !ticket.items[itemIndex].papasExtra;
-	renderTicket();
+    const ticket = activeTickets[activeTicketIndex];
+    ticket.items[itemIndex].papasExtra = !ticket.items[itemIndex].papasExtra;
+    renderTicket();
 }
 
 function toggleDone(itemIndex){
-	const ticket = activeTickets[activeTicketIndex];
-	ticket.items[itemIndex].done = !ticket.items[itemIndex].done;
-	renderTicket();
+    const ticket = activeTickets[activeTicketIndex];
+    ticket.items[itemIndex].done = !ticket.items[itemIndex].done;
+    renderTicket();
 }
 
 function renderProducts(category){
-	productGrid.innerHTML="";
-	extrasGrid.innerHTML="";
-	
-	if(category==="Extras"){
-		productsData.Extras.forEach(p=>{
-			const btn=document.createElement("button");
-			btn.className="ext-btn";
-			btn.innerHTML=`<div class="name">${p.name}</div><div class="price">$${p.price}</div>`;
-			btn.onclick=()=>addToTicket({...p,qty:1});
-			extrasGrid.appendChild(btn);
-		});
-		return;
-	}
-	productsData[category].forEach(p=>{
-		const div=document.createElement("div");
-		div.className="prod";
-		div.innerHTML=`<div class="name">${p.name}</div><div class="price">$${p.price}</div>`;
-		div.onclick=()=>addToTicket({...p,qty:1,papas:false, relleno: p.relleno, done:false}); 
-		productGrid.appendChild(div);
-	});
+    productGrid.innerHTML="";
+    extrasGrid.innerHTML="";
+    
+    if(category==="Extras"){
+        productsData.Extras.forEach(p=>{
+            const btn=document.createElement("button");
+            btn.className="ext-btn";
+            btn.innerHTML=`<div class="name">${p.name}</div><div class="price">$${p.price}</div>`;
+            btn.onclick=()=>addToTicket({...p,qty:1});
+            extrasGrid.appendChild(btn);
+        });
+        return;
+    }
+    productsData[category].forEach(p=>{
+        const div=document.createElement("div");
+        div.className="prod";
+        div.innerHTML=`<div class="name">${p.name}</div><div class="price">$${p.price}</div>`;
+        div.onclick=()=>addToTicket({...p,qty:1,papas:false, relleno: p.relleno, done:false}); 
+        productGrid.appendChild(div);
+    });
 }
 
-// Aadir producto al ticket (SIEMPRE crea una nueva lnea)
 function addToTicket(item){
-	if (activeTicketIndex === -1) {
-		newTicket(); 
-		if (activeTickets.length === 0) return; 
-	}
-	
-	const ticket = activeTickets[activeTicketIndex];
-	
-	const itemToAdd = item.isExtra 
-		? {...item, id: Date.now(), qty:1, isExtra:true, papasExtra: item.name === 'Salchipulpos' ? false : undefined, done:false}
-		: {...item, id: Date.now(), qty:1, isExtra:false, papas:false, relleno: item.relleno, done:false};
-	
-	ticket.items.push(itemToAdd);
-	
-	renderTabs(); 
-	renderTicket();
+    if (activeTicketIndex === -1) {
+        newTicket('Cliente 1'); 
+        if (activeTickets.length === 0) return; 
+    }
+    const ticket = activeTickets[activeTicketIndex];
+    const itemToAdd = item.isExtra 
+        ? {...item, id: Date.now(), qty:1, isExtra:true, papasExtra: item.name === 'Salchipulpos' ? false : undefined, done:false}
+        : {...item, id: Date.now(), qty:1, isExtra:false, papas:false, relleno: item.relleno, done:false};
+    if (itemToAdd.name === 'Órden de Papas') { delete itemToAdd.papasExtra; }
+    ticket.items.push(itemToAdd);
+    renderTabs(); 
+    renderTicket();
 }
 
-function calculateTotal(items) {
-	let subtotal = 0;
-	items.forEach(item => {
-		let price = item.price;
-		if (item.papas) price += 15;
-		if (item.papasExtra) price += 15;
-		subtotal += price * item.qty;
-	});
-	return subtotal;
-}
 
 function renderTicket(){
-	if (activeTicketIndex === -1 || activeTickets.length === 0) {
-		ticketItems.innerHTML='<div class="empty">Crea un nuevo ticket para empezar a tomar pedidos.</div>';
-		clientNameInputEl.value = "Sin Tickets Activos";
-		clientNameInputEl.disabled = true; 
-		subtotalEl.textContent=`$0.00`;
-		totalEl.textContent=`$0.00`;
-		ticketNoteInputEl.value = '';
-		paymentMethodSelectEl.value = 'Efectivo';
-		return;
-	}
-	
-	const currentTicket = activeTickets[activeTicketIndex];
-	const ticketItemsList = currentTicket.items;
+    if (activeTicketIndex === -1 || activeTickets.length === 0) {
+        // [Estado sin tickets]
+        ticketItems.innerHTML='<div class="empty">Crea un nuevo ticket para empezar a tomar pedidos.</div>';
+        clientNameInputEl.value = "Sin Tickets Activos";
+        clientNameInputEl.disabled = true; 
+        subtotalEl.textContent=`$0.00`;
+        totalEl.textContent=`$0.00`;
+        ticketNoteInputEl.value = '';
+        paymentMethodSelectEl.value = 'Efectivo';
+        cashPaidInputEl.value = '';
+        cashChangeEl.textContent = '$0.00';
+        toggleCashDetails(); 
+        return;
+    }
+    
+    const currentTicket = activeTickets[activeTicketIndex];
+    clientNameInputEl.value = currentTicket.name;
+    clientNameInputEl.disabled = false;
+    ticketNoteInputEl.value = currentTicket.note;
+    paymentMethodSelectEl.value = currentTicket.paymentMethod;
 
-	// 1. Actualizar el nombre del cliente, nota y pago
-	clientNameInputEl.value = currentTicket.name;
-	clientNameInputEl.disabled = false;
-	ticketNoteInputEl.value = currentTicket.note;
-	paymentMethodSelectEl.value = currentTicket.paymentMethod;
+    clientNameInputEl.oninput = (e) => { currentTicket.name = e.target.value; renderTabs(); };
+    ticketNoteInputEl.oninput = (e) => { currentTicket.note = e.target.value; };
 
-	clientNameInputEl.oninput = (e) => {
-		currentTicket.name = e.target.value;
-		renderTabs(); 
-	};
+    cashPaidInputEl.value = currentTicket.paid || ''; 
 
-	ticketNoteInputEl.oninput = (e) => {
-		currentTicket.note = e.target.value;
-	};
-
-	paymentMethodSelectEl.onchange = (e) => {
-		currentTicket.paymentMethod = e.target.value;
-	};
-
-
-	ticketItems.innerHTML="";
-	if(ticketItemsList.length===0){
-		ticketItems.innerHTML='<div class="empty">No hay productos en el ticket. Aade desde la izquierda.</div>';
-	}
-
-	let subtotal=0;
-	
-	ticketItemsList.forEach((item,i)=>{
-		let price=item.price;
-		let itemClass = 'item';
-		let metaContent='';
-		let papasCheckbox='';
-		
-		// Lgica de productos (Relleno, Extras, Papas)
-		if(!item.isExtra){
-			itemClass += ` banderilla-${item.relleno.toLowerCase()}`;
-			metaContent=`<div class="main-name">${item.relleno || 'Banderilla'}</div>`; 
-			metaContent+=`<div class="small muted">${item.name}</div>`; 
-			
-			// Checkbox de Papas (Para banderillas)
-			papasCheckbox=`<label style="margin-left:8px;font-size:0.85rem;white-space:nowrap">
-			<input type="checkbox" ${item.papas?"checked":""} onchange="togglePapas(${i})"> Papas +$15
-			</label>`;
-			if(item.papas) price+=15;
-		} else {
-			itemClass += ' extra-item';
-			metaContent=`<div style="font-weight:800">${item.name}</div>`;
-			metaContent+=`<div class="small muted">Extra</div>`;
-			
-			// Checkbox de Papas (Para Salchipulpos)
-			if(item.name === 'Salchipulpos'){
-				papasCheckbox=`<label style="margin-left:8px;font-size:0.85rem;white-space:nowrap">
-					<input type="checkbox" ${item.papasExtra?"checked":""} onchange="togglePapasExtra(${i})"> Papas +$15
-				</label>`;
-				if(item.papasExtra) price+=15;
-			}
-		}
-		
-		if(item.done) { itemClass += ' done'; }
-		
-		subtotal+=price*item.qty;
-		
-		// Botones de Cantidad 
-		const qtyControls = `
-			<button onclick="changeQuantity(${i}, -1)" style="background:#ddd;border:none;border-radius:50%;width:24px;height:24px;font-weight:700;cursor:pointer;">-</button>
-			<div class="qty">${item.qty}</div>
-			<button onclick="changeQuantity(${i}, 1)" style="background:#ddd;border:none;border-radius:50%;width:24px;height:24px;font-weight:700;cursor:pointer;">+</button>
-		`;
-
-		// Botn de 'Hecho' y 'Eliminar' 
-		const doneButtonText = item.done ? 'Listo' : 'Preparar';
-		const doneButton = `<button class="done-btn" onclick="toggleDone(${i})">${doneButtonText}</button>`;
-		const removeButton = `<button onclick="removeItem(${i})" style="background:none;border:none;color:var(--danger);cursor:pointer;font-weight:800;font-size:1.1rem"></button>`;
-
-		const div=document.createElement('div');
-		div.className=itemClass; 
-		div.innerHTML=`
-			<div class="meta">${metaContent}${papasCheckbox}</div>
-			<div style="display:flex;gap:4px;align-items:center">
-				${doneButton} 
-				${qtyControls}
-				<div style="font-weight:800; min-width:60px; text-align:right">$${(price*item.qty).toFixed(2)}</div>
-				${removeButton}
-			</div>`;
-		ticketItems.appendChild(div);
-	});
-	
-	// 3. Actualizar Totales 
-	subtotalEl.textContent=`$${subtotal.toFixed(2)}`;
-	totalEl.textContent=`$${subtotal.toFixed(2)}`;
-	renderTabs(); 
-}
-
-// Funcin para renderizar el resumen diario (Tickets)
-function renderDailySummary() {
-	if (dailySummaryTickets.length === 0) {
-		summaryListEl.innerHTML = '<p class="muted center">No hay tickets guardados hoy.</p>';
-	} else {
-		summaryListEl.innerHTML = '';
-		dailySummaryTickets.forEach(ticket => {
-			const div = document.createElement('div');
-			div.className = 'summary-item';
-
-			const itemsList = ticket.items.map(item => {
-				let name = item.name;
-				if (item.relleno) name = `${item.relleno} ${item.name}`;
-				if (item.papas || item.papasExtra) name += ' + Papas';
-				return `${item.qty}  ${name}`;
-			}).join('; ');
-
-			div.innerHTML = `
-				<h4>
-					<span>${ticket.name}</span>
-					<span style="color:var(--success);">${ticket.total.toFixed(2)} $</span>
-				</h4>
-				<div class="details">
-					<span>Pago:</span> ${ticket.paymentMethod}<br>
-					<span>Items:</span> ${itemsList}
-				</div>
-			`;
-			summaryListEl.appendChild(div);
-		});
-	}
-	
-	renderSalesSummary();
-}
-
-// Funcin para renderizar el resumen de ventas por producto (Con total general)
-function renderSalesSummary() {
-	const detailedSales = {};
-
-	// 1. Procesar los productos principales vendidos
-	Object.entries(productSalesSummary).forEach(([fullKey, qty]) => {
-		let relleno = 'extra';
-		if (fullKey.includes('Salchicha')) { relleno = 'salchicha'; }
-		else if (fullKey.includes('Combinada')) { relleno = 'combinada'; }
-		else if (fullKey.includes('Queso')) { relleno = 'queso'; }
-
-		detailedSales[fullKey] = {
-			name: fullKey,
-			qty: qty,
-			relleno: relleno
-		};
-	});
-	
-	const keys = Object.keys(detailedSales);
-	
-	// 2. Agregar el conteo total de Papas +$15 si existe (como tem separado)
-	if (papasSalesSummary > 0) {
-		const papasKey = "Papas Chicas Extras ($15)";
-		detailedSales[papasKey] = {
-			name: papasKey,
-			qty: papasSalesSummary,
-			relleno: 'extra'
-		};
-		if (!keys.includes(papasKey)) {
-			keys.push(papasKey);
-		}
-	}
-
-	if (keys.length === 0) {
-		salesSummaryListEl.innerHTML = '<p class="muted center">No hay productos vendidos hoy.</p>';
-	} else {
-		salesSummaryListEl.innerHTML = '';
-		
-		// Ordenar y Renderizar
-		keys.sort((a, b) => detailedSales[b].qty - detailedSales[a].qty);
-
-		keys.forEach(key => {
-			const item = detailedSales[key];
-			const div = document.createElement('div');
-			div.className = `sale-item banderilla-${item.relleno}`; 
-			
-			div.innerHTML = `
-				<div class="name">${item.name}</div>
-				<div class="qty">${item.qty}</div>
-			`;
-			salesSummaryListEl.appendChild(div);
-		});
-	}
-	
-	// 3. Calcular y mostrar el Total General de las ventas
-	const grandTotal = dailySummaryTickets.reduce((sum, ticket) => sum + ticket.total, 0);
-	dailySalesTotalEl.textContent = `$${grandTotal.toFixed(2)}`;
-}
-
-// Funcin para calcular el total
-function calculateTotal(items) {
-	let subtotal = 0;
-	items.forEach(item => {
-		let price = item.price;
-		if (item.papas) price += 15;
-		if (item.papasExtra) price += 15;
-		subtotal += price * item.qty;
-	});
-	return subtotal;
-}
-
-// --- FUNCIN DE EXPORTACIN XLSX (SheetJS) ---
-
-function exportToXLSX() {
-    // Si no hay datos, no hacemos nada
-    if (dailySummaryTickets.length === 0 && Object.keys(productSalesSummary).length === 0) {
-        return false;
+    // Renderizar ítems
+    ticketItems.innerHTML="";
+    if(currentTicket.items.length===0){
+        ticketItems.innerHTML='<div class="empty">No hay productos en el ticket. Añade desde la izquierda.</div>';
     }
 
-    // --- HOJA 1: REPORTE TRANSACCIONAL ---
+    let subtotal=0;
+    currentTicket.items.forEach((item,i)=>{
+        let price=item.price;
+        if(item.papas) price+=15;
+        if(item.papasExtra) price+=15;
+        subtotal+=price*item.qty;
+
+        const qtyControls = `<div class="qty-controls"><button onclick="changeQuantity(${i}, -1)">–</button><div class="qty">${item.qty}</div><button onclick="changeQuantity(${i}, 1)">+</button></div>`;
+        const removeButton = `<button onclick="removeItem(${i})" style="background:none;border:none;color:var(--danger);cursor:pointer;font-weight:800;font-size:1.2rem; margin-left: 4px;">&times;</button>`;
+        const priceDisplay = `<div style="font-weight:800; min-width:65px; text-align:right">$${(price*item.qty).toFixed(2)}</div>`;
+        const papasCheckbox = (!item.isExtra && item.name !== 'Órden de Papas') ? `<label style="margin-left:8px;font-size:0.85rem;white-space:nowrap; cursor:pointer;"><input type="checkbox" ${item.papas?"checked":""} onchange="togglePapas(${i})"> Papas +$15</label>` : '';
+        const metaContent=`<div class="main-name">${item.relleno || item.name}</div><div class="small muted">${item.isExtra ? 'Extra' : item.name}</div>${papasCheckbox}`;
+        
+        const div=document.createElement('div');
+        div.className=`item ${item.relleno ? 'banderilla-' + item.relleno.toLowerCase() : 'extra-item'} ${item.done ? 'done' : ''}`;
+        
+        // REFUERZO VISUAL DEL BOTÓN PREPARAR/LISTO
+        const doneBtnClass = item.done ? 'done-btn' : 'done-btn preparing';
+        const doneButtonHtml = `<button class="${doneBtnClass}" onclick="toggleDone(${i})">${item.done ? 'Listo' : 'Preparar'}</button>`;
+
+
+        div.innerHTML=`<div class="meta">${metaContent}</div><div style="display:flex;gap:4px;align-items:center">${doneButtonHtml}${qtyControls}${priceDisplay}${removeButton}</div>`;
+        ticketItems.appendChild(div);
+    });
+    
+    const total = calculateTotal(currentTicket.items);
+    subtotalEl.textContent=`$${subtotal.toFixed(2)}`;
+    totalEl.textContent=`$${total.toFixed(2)}`;
+    
+    updateChange();
+    renderTabs(); 
+}
+
+
+// --- LECTURA DE TICKETS GUARDADOS ---
+
+function displayReadOnlyTicket(ticket) {
+    const total = ticket.total.toFixed(2);
+    const paid = (ticket.paid || 0).toFixed(2);
+    const change = (ticket.change || 0).toFixed(2);
+    
+    let itemsHtml = ticket.items.map(item => {
+        let name = item.name;
+        if (item.relleno) name = `${item.relleno} ${item.name}`;
+        if (item.papas) name += ' (+Papas)';
+        if (item.papasExtra) name += ' (+Papas)';
+        
+        const price = item.price + (item.papas ? 15 : 0) + (item.papasExtra ? 15 : 0);
+        const itemTotal = (price * item.qty).toFixed(2);
+        
+        return `<div class="ro-item">
+                    <span class="ro-item-name">${item.qty} x ${name}</span>
+                    <span>$${itemTotal}</span>
+                </div>`;
+    }).join('');
+
+    readOnlyTicketContainerEl.innerHTML = `
+        <div id="read-only-ticket-view">
+            <div class="ro-title">Ticket Guardado</div>
+            
+            <div class="ro-row"><span>Cliente:</span><span>${ticket.name}</span></div>
+            <div class="ro-row"><span>Hora:</span><span>${new Date(ticket.id).toLocaleTimeString()}</span></div>
+            <div class="ro-row"><span>Forma de Pago:</span><span>${ticket.paymentMethod}</span></div>
+            ${ticket.note ? `<div class="ro-row" style="flex-direction: column; margin-top: 5px;"><span>Nota:</span><span style="font-weight: 400; font-size: 0.9rem;">${ticket.note}</span></div>` : ''}
+
+            <div class="ro-items">${itemsHtml}</div>
+            
+            <div class="ro-row"><span>Total:</span><span style="font-size: 1.2rem; color: var(--brand-dark);">$${total}</span></div>
+            <div class="ro-row"><span>Pagado:</span><span>$${paid}</span></div>
+            <div class="ro-row" style="border-top: 1px dashed #ccc; margin-top: 5px;"><span>Cambio:</span><span>$${change}</span></div>
+            
+            <button class="pay-btn ro-print-btn" style="background: #007bff; margin-top: 15px;" 
+                    onclick="prepareAndPrintReceipt(dailySummaryTickets.find(t => t.id === ${ticket.id}))">
+                Imprimir Recibo (PDF) ⎙
+            </button>
+        </div>
+    `;
+    readOnlyTicketContainerEl.style.display = 'block';
+}
+
+function reopenTicket(ticketId) {
+    const ticket = dailySummaryTickets.find(t => t.id === ticketId);
+    if (ticket) {
+        summaryListEl.style.display = 'none';
+        displayReadOnlyTicket(ticket);
+    }
+}
+
+function renderDailySummary() {
+    readOnlyTicketContainerEl.style.display = 'none'; 
+    summaryListEl.style.display = 'block';
+
+    if (dailySummaryTickets.length === 0) {
+        summaryListEl.innerHTML = '<p class="muted center">No hay tickets guardados hoy.</p>';
+    } else {
+        summaryListEl.innerHTML = '';
+        [...dailySummaryTickets].reverse().forEach(ticket => { 
+            const div = document.createElement('div');
+            div.className = 'summary-item';
+            div.onclick = () => reopenTicket(ticket.id); 
+
+            const itemsList = ticket.items.map(item => {
+                let name = item.name;
+                if (item.relleno) name = `${item.relleno} ${item.name}`;
+                if (item.papas || item.papasExtra) name += ' + Papas';
+                return `${item.qty} ${name}`;
+            }).join('; ');
+
+            div.innerHTML = `
+                <h4>
+                    <span>${ticket.name}</span>
+                    <span style="color:var(--brand-dark);">$${ticket.total.toFixed(2)}</span>
+                </h4>
+                <div class="details">
+                    <span>Pago:</span> ${ticket.paymentMethod} | 
+                    <span>Items:</span> ${itemsList}
+                </div>
+            `;
+            summaryListEl.appendChild(div);
+        });
+    }
+    renderSalesSummary();
+}
+
+
+// --- PREPARACIÓN DE PDF ---
+
+function prepareAndPrintReceipt(ticket = null) {
+    if (!ticket) {
+        if (activeTicketIndex === -1) {
+            alert("No hay un ticket activo para imprimir.");
+            return;
+        }
+        // Tomar datos del ticket activo y re-calcular el pago y cambio
+        ticket = activeTickets[activeTicketIndex];
+        ticket.date = new Date().toLocaleString(); 
+        ticket.paid = parseFloat(cashPaidInputEl.value) || (ticket.paymentMethod !== 'Efectivo' ? parseFloat(totalEl.textContent.replace('$', '')) : 0);
+        ticket.change = parseFloat(cashChangeEl.textContent.replace('$', '')) || 0;
+        ticket.total = parseFloat(totalEl.textContent.replace('$', '')) || 0;
+    }
+    
+    receiptPrintAreaEl.innerHTML = ''; 
+
+    const dateObj = new Date(ticket.date);
+    let dateStr = dateObj.toLocaleDateString();
+    let timeStr = dateObj.toLocaleTimeString();
+
+    // Comprobación de que la fecha se está generando
+    if (isNaN(dateObj)) {
+        console.error("Error al parsear la fecha:", ticket.date);
+        const now = new Date();
+        dateStr = now.toLocaleDateString();
+        timeStr = now.toLocaleTimeString();
+    }
+
+
+    let receiptHtml = `
+        <div class="print-logo">
+            <div class="logo-box">AB</div>
+            <span class="print-header">ASTRO BITE</span>
+            <p>¡Gracias por tu compra!</p>
+        </div>
+        <div class="print-meta">
+            <p>Fecha/Hora: ${dateStr} ${timeStr}</p>
+            <p>Cliente: ${ticket.name}</p>
+        </div>
+        <div class="print-items">
+    `;
+
+    ticket.items.forEach(item => {
+        let name = item.name;
+        if (item.relleno) name = `${item.relleno} ${item.name}`;
+        if (item.papas) name += ' (+Papas)';
+        if (item.papasExtra) name += ' (+Papas)';
+
+        const price = item.price + (item.papas ? 15 : 0) + (item.papasExtra ? 15 : 0);
+        const itemTotal = (price * item.qty).toFixed(2);
+        
+        receiptHtml += `
+            <div class="print-item">
+                <span class="print-item-qty-name">${item.qty} x ${name}</span>
+                <span class="print-item-total">$${itemTotal}</span>
+            </div>
+        `;
+    });
+    
+    receiptHtml += `</div>`;
+    
+    receiptHtml += `
+        <div class="print-totals">
+            <div class="print-total-row"><span>TOTAL:</span><span class="print-final-total">$${ticket.total.toFixed(2)}</span></div>
+            <div class="print-total-row"><span>Método:</span><span>${ticket.paymentMethod}</span></div>
+            <div class="print-total-row"><span>PAGO:</span><span>$${(ticket.paid).toFixed(2)}</span></div>
+            <div class="print-total-row"><span>CAMBIO:</span><span>$${(ticket.change).toFixed(2)}</span></div>
+        </div>
+        <div class="print-note">
+            ${ticket.note ? `<p>Nota: ${ticket.note}</p>` : ''}
+            <p>¡Vuelve pronto!</p>
+        </div>
+    `;
+
+    receiptPrintAreaEl.innerHTML = receiptHtml;
+
+    // USO DE setTimeout para asegurar que el DOM se actualice antes de imprimir
+    setTimeout(() => {
+        window.print();
+    }, 100);
+}
+
+
+// --- Resto de funciones (sin cambios funcionales) ---
+function renderSalesSummary() {
+    const detailedSales = {};
+    Object.entries(productSalesSummary).forEach(([fullKey, qty]) => {
+        let relleno = 'extra';
+        if (fullKey.includes('Salchicha')) { relleno = 'salchicha'; }
+        else if (fullKey.includes('Combinada')) { relleno = 'combinada'; }
+        else if (fullKey.includes('Queso')) { relleno = 'queso'; }
+        detailedSales[fullKey] = { name: fullKey, qty: qty, relleno: relleno };
+    });
+    const keys = Object.keys(detailedSales);
+    if (papasSalesSummary > 0) {
+        const papasKey = "Papas Adicionales ($15)";
+        detailedSales[papasKey] = { name: papasKey, qty: papasSalesSummary, relleno: 'extra' };
+        if (!keys.includes(papasKey)) { keys.push(papasKey); }
+    }
+    if (keys.length === 0) {
+        salesSummaryListEl.innerHTML = '<p class="muted center">No hay productos vendidos hoy.</p>';
+    } else {
+        salesSummaryListEl.innerHTML = '';
+        keys.sort((a, b) => detailedSales[b].qty - detailedSales[a].qty);
+        keys.forEach(key => {
+            const item = detailedSales[key];
+            const div = document.createElement('div');
+            div.className = `sale-item banderilla-${item.relleno}`; 
+            div.innerHTML = `<div class="name">${item.name}</div><div class="qty">${item.qty}</div>`;
+            salesSummaryListEl.appendChild(div);
+        });
+    }
+    const grandTotal = dailySummaryTickets.reduce((sum, ticket) => sum + ticket.total, 0);
+    dailySalesTotalEl.textContent = `$${grandTotal.toFixed(2)}`;
+}
+
+function exportToXLSX() {
+    if (dailySummaryTickets.length === 0 && Object.keys(productSalesSummary).length === 0) { return false; }
+
     const transactionsData = [];
     const headersTransacciones = ["ID Transaccion", "Cliente", "Hora de Compra", "Forma de Pago", "Items Comprados", "Monto Total"];
     transactionsData.push(headersTransacciones);
@@ -1017,7 +1119,6 @@ function exportToXLSX() {
             let name = item.name;
             if (item.relleno) name = `${item.relleno} ${item.name}`;
             if (item.papas || item.papasExtra) name += ' c/Papas';
-            // Reemplazamos comillas internas si existen, y comas, para evitar rupturas de CSV/EXCEL
             return `${item.qty}x ${name}`.replace(/"/g, '').replace(/,/g, ' '); 
         }).join(' | ');
 
@@ -1027,11 +1128,10 @@ function exportToXLSX() {
             time,
             ticket.paymentMethod,
             items,
-            parseFloat(ticket.total.toFixed(2)) // Usamos nmero para formato
+            parseFloat(ticket.total.toFixed(2)) 
         ]);
     });
     
-    // --- HOJA 2: INVENTARIO/KPIs ---
     const salesData = [];
     const headersKPIs = ["Producto/Variante", "Cantidad Vendida"];
     salesData.push(headersKPIs);
@@ -1042,168 +1142,133 @@ function exportToXLSX() {
     });
 
     if (papasSalesSummary > 0) {
-        salesData.push(["Papas Chicas Extras ($15)", papasSalesSummary]);
+        salesData.push(["Papas Adicionales ($15)", papasSalesSummary]);
     }
     
     const grandTotal = dailySummaryTickets.reduce((sum, ticket) => sum + ticket.total, 0);
-    salesData.push(["", ""]); // Separador
+    salesData.push(["", ""]); 
     salesData.push(["TOTAL VENTA GENERAL", parseFloat(grandTotal.toFixed(2))]);
 
-    // ------------------------------------------------------------------
-    // APLICACIN DE FORMATO CON SHEETJS
-    // ------------------------------------------------------------------
     const wb = XLSX.utils.book_new();
 
-    // Hoja de Transacciones
     const ws1 = XLSX.utils.aoa_to_sheet(transactionsData);
-    // Definir anchura de columnas (A=15, B=20, C=15, D=15, E=50, F=15)
     ws1['!cols'] = [
         {wch: 15}, {wch: 20}, {wch: 15}, {wch: 15}, {wch: 50}, {wch: 15}
     ];
-    // Formato de Moneda (Columna F, Filas 2 en adelante)
     for(let i = 1; i < transactionsData.length; i++) {
-        const cellRef = XLSX.utils.encode_cell({r: i, c: 5}); // Columna F
+        const cellRef = XLSX.utils.encode_cell({r: i, c: 5}); 
         if (ws1[cellRef]) ws1[cellRef].z = "$0.00";
     }
     XLSX.utils.book_append_sheet(wb, ws1, "Transacciones Detalle");
 
 
-    // Hoja de Inventario/KPIs
     const ws2 = XLSX.utils.aoa_to_sheet(salesData);
-    // Definir anchura de columnas (A=45, B=18)
     ws2['!cols'] = [
         {wch: 45}, {wch: 18}
     ];
-    // Formato de Moneda (Celda del total - Columna B, ltima fila)
     const totalRowIndex = salesData.length - 1;
-    const totalCellRef = XLSX.utils.encode_cell({r: totalRowIndex, c: 1}); // Columna B
+    const totalCellRef = XLSX.utils.encode_cell({r: totalRowIndex, c: 1}); 
     if (ws2[totalCellRef]) ws2[totalCellRef].z = "$0.00";
     
     XLSX.utils.book_append_sheet(wb, ws2, "Inventario y KPIs");
 
-    // Descargar el archivo
     const dateStr = new Date().toISOString().slice(0, 10);
-    XLSX.writeFile(wb, `Reporte_AstroBite_${dateStr}.xlsx`);
+    XLSX.writeFile(wb, `Informe_AstroBite_${dateStr}.xlsx`);
     
-    return true;
+    return true; 
 }
 
-// Funcin de Reinicio Inteligente
 function resetAndExport() {
-    // 1. Confirmacin de usuario
-    if (!confirm("ADVERTENCIA: Est seguro de REINICIAR LAS CUENTAS DIARIAS? Esto borrar el resumen de ventas. Asegrese de EXPORTAR!")) {
-        return;
-    }
-    
-    // 2. Generar y descargar el reporte XLSX
+    if (!confirm("ADVERTENCIA: ¿Estás seguro de REINICIAR LAS CUENTAS DIARIAS? Esto borrará el resumen de ventas. ¡Asegúrate de EXPORTAR!")) { return; }
     const success = exportToXLSX();
-    
     if (success) {
-        // 3. Reiniciar las variables de conteo a cero
         dailySummaryTickets = [];
         productSalesSummary = {};
         papasSalesSummary = 0;
-        
-        // 4. Guardar los valores reiniciados en localStorage
         saveAllData(); 
-        
-        // 5. Actualizar la interfaz
         renderDailySummary(); 
         renderSalesSummary();
-        alert("Cuentas reiniciadas a cero. El reporte XLSX se ha descargado.");
+        alert("Cuentas reiniciadas a cero. El informe XLSX se ha descargado.");
     } else {
         alert("El reinicio fue cancelado porque no hay datos de ventas para exportar.");
     }
 }
 
 
-// --- INICIALIZACIN ---
+// --- INICIALIZACIÓN ---
 document.addEventListener('DOMContentLoaded', (event) => {
-    loadAllData(); //  Cargar los datos antes de inicializar vistas
-    
-    // 1. Inicializa el primer ticket si no existe o si no hay tickets activos
+    loadAllData(); 
     if (activeTickets.length === 0) {
-		newTicket('Cliente 1');
-	} else {
-        // Si cargamos tickets, renderizamos el ltimo activo
+        newTicket('Cliente 1');
+    } else {
         activeTicketIndex = activeTickets.length - 1; 
-	}
-
+    }
     renderProducts("Salchicha"); 
-
-	// 2. Conecta los botones de categora y los botones de resumen
-	const categoriesContainer = document.querySelector('.categories');
-	const summarySection = document.getElementById('daily-summary');
-	const salesSection = document.getElementById('sales-summary'); 
-	const productGridContainer = document.querySelector('.product-grid');
-	const extrasGridContainer = document.querySelector('.extras');
-
-	// Botones de Categoras de Productos
-	document.querySelectorAll('.cat-btn').forEach(btn=>{
-		btn.addEventListener('click',()=>{
-			document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
-			btn.classList.add('active');
-			
-			const category = btn.dataset.cat;
-			if (category) {
-				summarySection.style.display = 'none';
-				salesSection.style.display = 'none'; 
-				
-				if (category === 'Extras') {
-					productGridContainer.style.display = 'none';
-					extrasGridContainer.style.display = 'grid';
-				} else {
-					productGridContainer.style.display = 'grid';
-					extrasGridContainer.style.display = 'none';
-				}
-				renderProducts(category);
-			}
-		});
-	});
-
-	// Aadir el botn para ver el resumen diario (Tickets)
-	const dailySummaryBtn = document.createElement('button');
-	dailySummaryBtn.className = 'cat-btn';
-	dailySummaryBtn.textContent = 'Tickets Guardados';
-	dailySummaryBtn.dataset.cat = 'DailySummary';
-	categoriesContainer.appendChild(dailySummaryBtn);
-
-	dailySummaryBtn.addEventListener('click', () => {
-		document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-		dailySummaryBtn.classList.add('active');
-		
-		productGridContainer.style.display = 'none';
-		extrasGridContainer.style.display = 'none';
-		salesSection.style.display = 'none'; 
-		summarySection.style.display = 'block';
-		renderDailySummary();
-	});
-
-	// Aadir el botn para ver el resumen de ventas (Inventario) 
-	const salesSummaryBtn = document.createElement('button');
-	salesSummaryBtn.className = 'cat-btn';
-	salesSummaryBtn.textContent = 'Ventas por Producto';
-	salesSummaryBtn.dataset.cat = 'SalesSummary';
-	categoriesContainer.appendChild(salesSummaryBtn);
-
-	salesSummaryBtn.addEventListener('click', () => {
-		document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-		salesSummaryBtn.classList.add('active');
-		
-		productGridContainer.style.display = 'none';
-		extrasGridContainer.style.display = 'none';
-		summarySection.style.display = 'none'; 
-		salesSection.style.display = 'block';
-		renderSalesSummary();
-	});
-
-
-	// Asegurar que la primera pestaa est activa al inicio
-	document.querySelector('.cat-btn[data-cat="Salchicha"]').classList.add('active');
     
-    // Forzar renderizado inicial
+    const categoriesContainer = document.querySelector('.categories');
+    const summarySection = document.getElementById('daily-summary');
+    const salesSection = document.getElementById('sales-summary'); 
+    const productGridContainer = document.querySelector('.product-grid');
+    const extrasGridContainer = document.querySelector('.extras');
+
+    document.querySelectorAll('.cat-btn').forEach(btn=>{
+        btn.addEventListener('click',()=>{
+            document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
+            btn.classList.add('active');
+            const category = btn.dataset.cat;
+            if (category) {
+                summarySection.style.display = 'none';
+                salesSection.style.display = 'none'; 
+                readOnlyTicketContainerEl.style.display = 'none'; 
+                
+                if (category === 'Extras') {
+                    productGridContainer.style.display = 'none';
+                    extrasGridContainer.style.display = 'grid';
+                } else {
+                    productGridContainer.style.display = 'grid';
+                    extrasGridContainer.style.display = 'none';
+                }
+                renderProducts(category);
+            }
+        });
+    });
+
+    const dailySummaryBtn = document.createElement('button');
+    dailySummaryBtn.className = 'cat-btn';
+    dailySummaryBtn.textContent = 'Tickets Guardados';
+    dailySummaryBtn.dataset.cat = 'DailySummary';
+    categoriesContainer.appendChild(dailySummaryBtn);
+
+    dailySummaryBtn.addEventListener('click', () => {
+        document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+        dailySummaryBtn.classList.add('active');
+        productGridContainer.style.display = 'none';
+        extrasGridContainer.style.display = 'none';
+        salesSection.style.display = 'none'; 
+        summarySection.style.display = 'block';
+        renderDailySummary();
+    });
+
+    const salesSummaryBtn = document.createElement('button');
+    salesSummaryBtn.className = 'cat-btn';
+    salesSummaryBtn.textContent = 'Ventas por Producto';
+    salesSummaryBtn.dataset.cat = 'SalesSummary';
+    categoriesContainer.appendChild(salesSummaryBtn);
+
+    salesSummaryBtn.addEventListener('click', () => {
+        document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+        salesSummaryBtn.classList.add('active');
+        productGridContainer.style.display = 'none';
+        extrasGridContainer.style.display = 'none';
+        summarySection.style.display = 'none'; 
+        salesSection.style.display = 'block';
+        renderSalesSummary();
+    });
+
+    document.querySelector('.cat-btn[data-cat="Salchicha"]').classList.add('active');
     renderTabs();
     renderTicket();
+    toggleCashDetails(); 
 });
 </script>
 
