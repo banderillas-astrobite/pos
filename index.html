@@ -126,7 +126,7 @@
             display:grid;
             grid-template-columns: repeat(2, 1fr);
             gap:0; 
-            border: 1px solid #eee;
+            border: 1px solid #eee; /* Borde externo de la cuadrícula de productos */
             border-radius: 8px;
             overflow: hidden;
             order: 1; 
@@ -317,31 +317,30 @@
             transition: transform .12s ease;
         }
 
-        /* ALINEACIÓN Y DISEÑO DE CANTIDADES EN VENTAS POR PRODUCTO (CORREGIDO) */
+        /* ALINEACIÓN Y DISEÑO DE CANTIDADES EN VENTAS POR PRODUCTO */
         #sales-summary-list .sale-item {
-            display: flex; /* Asegura el layout horizontal */
-            justify-content: space-between; /* Espacio entre nombre y cantidad */
+            display: flex; 
+            justify-content: space-between; 
             align-items: center;
-            padding: 8px 12px; /* Espacio interno restaurado */
+            padding: 8px 12px; 
             margin-bottom: 6px; 
             border-radius: 6px;
-            border-left: none; /* Asegurar que no hay borde de 5px */
-            /* Separación con el elemento siguiente */
+            border-left: none; 
             border-bottom: 1px dashed rgba(0,0,0,0.1); 
             padding-bottom: 8px;
             padding-top: 8px;
         }
         
-        /* Elimina el borde y el fondo del contenedor de cantidad */
+        /* ELIMINA BORDES y FONDO DE LA CANTIDAD EN EL RESUMEN DE VENTAS */
         .sale-item .qty {
             min-width: 30px; 
             text-align: right !important;
             display: block; 
             flex-shrink: 0; 
-            padding: 0; /* Elimina padding que causa el borde */
-            border: none !important; /* ELIMINAR EL BORDE VISUAL */
-            background: none !important; /* ELIMINAR EL FONDO BLANCO */
-            color: var(--brand-dark); /* Mantener el color original del número */
+            padding: 0; 
+            border: none !important; 
+            background: none !important; 
+            color: var(--brand-dark); 
             font-weight: 800;
         }
         .sale-item .name {
@@ -354,14 +353,13 @@
         .sale-item.banderilla-queso { background-color: var(--color-queso); border-left-color: #28a745; }
         .sale-item.extra-item { background-color: var(--color-extra); border-left-color: #777; }
         
-        /* REFUERZO DE DIVISIONES EN TICKETS GUARDADOS (CORREGIDO) */
+        /* REFUERZO DE DIVISIONES EN TICKETS GUARDADOS */
         #summary-list .summary-item {
             padding: 10px;
             background: var(--muted);
             border-radius: 8px;
             margin-bottom: 12px; 
             border-left: 5px solid var(--brand); 
-            /* REFUERZO: Borde inferior más fuerte para la separación del bloque */
             border-bottom: 2px solid rgba(0,0,0,0.1); 
             box-shadow: 0 1px 3px rgba(0,0,0,0.05); 
             cursor: pointer;
@@ -426,15 +424,13 @@
         }
     </style>
 </head>
-<body>
-
-<main class="wrap" role="main" aria-labelledby="title">
+<body style="display: none;"> <main class="wrap" role="main" aria-labelledby="title">
     <header class="app-header">
         <div class="brand">
             <div class="logo">AB</div>
             <div>
                 <h1 id="title">Astro Bite</h1>
-                <p class="sub">Caja rápida</p>
+                <p class="sub">Caja rápida – Toma pedidos en segundos</p>
             </div>
         </div>
     </header>
@@ -455,7 +451,7 @@
 
             <div class="totals" aria-hidden="false">
                 <div class="row"><span>Subtotal</span><span id="subtotal">$0.00</span></div>
-                
+                <div class="row"><span>IVA (0%)</span><span>$0.00</span></div>
                 <div class="row" style="font-size:1.1rem"><span>Total</span><span id="total">$0.00</span></div>
             </div>
 
@@ -534,10 +530,120 @@
         </section>
     </section>
 
+    <div class="footer-note">Diseño rápido, listo para conectar a base de datos y *back-end*.</div>
+
     <div id="receipt-print-area" style="display:none;"></div>
 </main>
 
 <script>
+// --- CÓDIGO DE BLOQUEO DE ACCESO (OPCIÓN BÁSICA) ---
+const PASSWORD_CORRECTA = "123";
+
+window.onload = function() {
+    let intentos = 0;
+    // La aplicación solo se inicia completamente después del intento de contraseña
+    if (!localStorage.getItem('access_granted')) {
+        while (intentos < 3) {
+            const clave = prompt("Introduce tu contraseña para acceder al TPV:");
+            if (clave === PASSWORD_CORRECTA) {
+                localStorage.setItem('access_granted', 'true');
+                document.body.style.display = 'flex'; // Muestra la aplicación
+                break; 
+            } else {
+                intentos++;
+                alert(`Contraseña incorrecta. Intentos restantes: ${3 - intentos}`);
+            }
+        }
+        if (intentos >= 3) {
+            document.body.innerHTML = '<main class="wrap" style="align-items:center; justify-content:center; height:100vh; grid-template-columns:1fr;"><h1 style="color: var(--danger);">❌ Acceso Denegado ❌</h1></main>';
+            return;
+        }
+    } else {
+        document.body.style.display = 'flex';
+    }
+
+    // El resto del código de inicialización se ejecuta aquí
+    initializeTPV();
+};
+
+function initializeTPV() {
+    loadAllData(); 
+    if (activeTickets.length === 0) {
+        newTicket('Cliente 1');
+    } else {
+        activeTicketIndex = activeTickets.length - 1; 
+    }
+    renderProducts("Salchicha"); 
+    
+    // Conexión de botones de categoría y resumen
+    const categoriesContainer = document.querySelector('.categories');
+    const summarySection = document.getElementById('daily-summary');
+    const salesSection = document.getElementById('sales-summary'); 
+    const productGridContainer = document.querySelector('.product-grid');
+    const extrasGridContainer = document.querySelector('.extras');
+
+    document.querySelectorAll('.cat-btn').forEach(btn=>{
+        btn.addEventListener('click',()=>{
+            document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
+            btn.classList.add('active');
+            const category = btn.dataset.cat;
+            if (category) {
+                summarySection.style.display = 'none';
+                salesSection.style.display = 'none'; 
+                readOnlyTicketContainerEl.style.display = 'none'; 
+                
+                if (category === 'Extras') {
+                    productGridContainer.style.display = 'none';
+                    extrasGridContainer.style.display = 'grid';
+                } else {
+                    productGridContainer.style.display = 'grid';
+                    extrasGridContainer.style.display = 'none';
+                }
+                renderProducts(category);
+            }
+        });
+    });
+
+    const dailySummaryBtn = document.createElement('button');
+    dailySummaryBtn.className = 'cat-btn';
+    dailySummaryBtn.textContent = 'Tickets Guardados';
+    dailySummaryBtn.dataset.cat = 'DailySummary';
+    categoriesContainer.appendChild(dailySummaryBtn);
+
+    dailySummaryBtn.addEventListener('click', () => {
+        document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+        dailySummaryBtn.classList.add('active');
+        productGridContainer.style.display = 'none';
+        extrasGridContainer.style.display = 'none';
+        salesSection.style.display = 'none'; 
+        summarySection.style.display = 'block';
+        renderDailySummary();
+    });
+
+    const salesSummaryBtn = document.createElement('button');
+    salesSummaryBtn.className = 'cat-btn';
+    salesSummaryBtn.textContent = 'Ventas por Producto';
+    salesSummaryBtn.dataset.cat = 'SalesSummary';
+    categoriesContainer.appendChild(salesSummaryBtn);
+
+    salesSummaryBtn.addEventListener('click', () => {
+        document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+        salesSummaryBtn.classList.add('active');
+        productGridContainer.style.display = 'none';
+        extrasGridContainer.style.display = 'none';
+        summarySection.style.display = 'none'; 
+        salesSection.style.display = 'block';
+        renderSalesSummary();
+    });
+
+    document.querySelector('.cat-btn[data-cat="Salchicha"]').classList.add('active');
+    renderTabs();
+    renderTicket();
+    toggleCashDetails(); 
+}
+// --- FIN CÓDIGO DE BLOQUEO Y INICIALIZACIÓN ---
+
+
 const productsData = {
     Salchicha:[{name:"Ramen",price:45, relleno:"Salchicha"},{name:"Cruji",price:45, relleno:"Salchicha"},{name:"Papa",price:50, relleno:"Salchicha"},{name:"Cheetos",price:55, relleno:"Salchicha"},{name:"Flamin Hot",price:55, relleno:"Salchicha"}],
     Combinada:[{name:"Ramen",price:50, relleno:"Combinada"},{name:"Cruji",price:50, relleno:"Combinada"},{name:"Papa",price:55, relleno:"Combinada"},{name:"Cheetos",price:60, relleno:"Combinada"},{name:"Flamin Hot",price:60, relleno:"Combinada"}],
@@ -1197,78 +1303,7 @@ function resetAndExport() {
 
 // --- INICIALIZACIÓN ---
 document.addEventListener('DOMContentLoaded', (event) => {
-    loadAllData(); 
-    if (activeTickets.length === 0) {
-        newTicket('Cliente 1');
-    } else {
-        activeTicketIndex = activeTickets.length - 1; 
-    }
-    renderProducts("Salchicha"); 
-    
-    const categoriesContainer = document.querySelector('.categories');
-    const summarySection = document.getElementById('daily-summary');
-    const salesSection = document.getElementById('sales-summary'); 
-    const productGridContainer = document.querySelector('.product-grid');
-    const extrasGridContainer = document.querySelector('.extras');
-
-    document.querySelectorAll('.cat-btn').forEach(btn=>{
-        btn.addEventListener('click',()=>{
-            document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
-            btn.classList.add('active');
-            const category = btn.dataset.cat;
-            if (category) {
-                summarySection.style.display = 'none';
-                salesSection.style.display = 'none'; 
-                readOnlyTicketContainerEl.style.display = 'none'; 
-                
-                if (category === 'Extras') {
-                    productGridContainer.style.display = 'none';
-                    extrasGridContainer.style.display = 'grid';
-                } else {
-                    productGridContainer.style.display = 'grid';
-                    extrasGridContainer.style.display = 'none';
-                }
-                renderProducts(category);
-            }
-        });
-    });
-
-    const dailySummaryBtn = document.createElement('button');
-    dailySummaryBtn.className = 'cat-btn';
-    dailySummaryBtn.textContent = 'Tickets Guardados';
-    dailySummaryBtn.dataset.cat = 'DailySummary';
-    categoriesContainer.appendChild(dailySummaryBtn);
-
-    dailySummaryBtn.addEventListener('click', () => {
-        document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-        dailySummaryBtn.classList.add('active');
-        productGridContainer.style.display = 'none';
-        extrasGridContainer.style.display = 'none';
-        salesSection.style.display = 'none'; 
-        summarySection.style.display = 'block';
-        renderDailySummary();
-    });
-
-    const salesSummaryBtn = document.createElement('button');
-    salesSummaryBtn.className = 'cat-btn';
-    salesSummaryBtn.textContent = 'Ventas por Producto';
-    salesSummaryBtn.dataset.cat = 'SalesSummary';
-    categoriesContainer.appendChild(salesSummaryBtn);
-
-    salesSummaryBtn.addEventListener('click', () => {
-        document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-        salesSummaryBtn.classList.add('active');
-        productGridContainer.style.display = 'none';
-        extrasGridContainer.style.display = 'none';
-        summarySection.style.display = 'none'; 
-        salesSection.style.display = 'block';
-        renderSalesSummary();
-    });
-
-    document.querySelector('.cat-btn[data-cat="Salchicha"]').classList.add('active');
-    renderTabs();
-    renderTicket();
-    toggleCashDetails(); 
+    // La inicialización se movió a window.onload para respetar el bloqueo de contraseña
 });
 </script>
 
