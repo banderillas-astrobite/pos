@@ -1,0 +1,1211 @@
+<!doctype html>
+<html lang="es">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width,initial-scale=1" />
+	<title>Astro Bite TPV Multi-Ticket (Final)</title>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+
+	<style>
+		:root{
+			--brand: #ff6b00;
+			--brand-dark: #d95000;
+			--accent: #ff9f43;
+			--muted: #f3f4f6;
+			--card: #ffffff;
+			--text: #222;
+			--success: #2ecc71;
+			--danger: #e74c3c;
+			--shadow: 0 10px 30px rgba(0,0,0,0.12);
+			--radius: 12px;
+			--gap: 12px;
+			--max-width: 980px;
+		
+			/* Colores para identificacin rpida del relleno */
+			--color-salchicha: #ffecb3; 
+			--color-combinada: #b3e5fc; 
+			--color-queso: #c8e6c9; 
+			--color-extra: #f0f0f0; 
+			
+			/* Colores de Tickets Activos */
+			--ticket-bg: #f9f9f9;
+			--ticket-active-bg: #fff;
+			--ticket-border: #eee;
+		}
+
+		*{box-sizing:border-box}
+		html,body{height:100%}
+		body{
+			margin:0;
+			font-family: Inter, "Helvetica Neue", Arial, sans-serif;
+			background:#fff;
+			color:var(--text);
+			display:flex;
+			justify-content:center;
+			padding:1rem;
+		}
+
+		.wrap{
+			width:100%;
+			max-width:var(--max-width);
+			display:grid;
+			grid-template-columns:1fr 380px;
+			gap:1rem;
+			align-items:start;
+		}
+
+		/* --- CSS Base de Elementos --- */
+
+		header.app-header{
+			grid-column:1 / -1;
+			display:flex;
+			align-items:center;
+			justify-content:space-between;
+			gap:1rem;
+			margin-bottom:0.5rem;
+		}
+		.brand{
+			display:flex;
+			align-items:center;
+			gap:0.8rem;
+		}
+		.logo{
+			width:44px;
+			height:44px;
+			border-radius:10px;
+			background:linear-gradient(135deg,var(--brand),var(--accent));
+			display:flex;
+			align-items:center;
+			justify-content:center;
+			color:white;
+			font-weight:700;
+			box-shadow: var(--shadow);
+		}
+		h1{font-size:1.1rem;margin:0}
+		.sub{color:#666;font-size:0.85rem;margin:0}
+
+		.panel{
+			background:var(--card);
+			border-radius: var(--radius);
+			padding: 1rem;
+			box-shadow: var(--shadow);
+		}
+
+		.categories{
+			display:flex;
+			gap:var(--gap);
+			margin-bottom:0.75rem;
+			overflow:auto;
+		}
+		.cat-btn{
+			white-space:nowrap;
+			padding:0.5rem 0.75rem;
+			border-radius:999px;
+			border:1px solid transparent;
+			background:var(--muted);
+			color: #333;
+			font-weight:600;
+			cursor:pointer;
+			flex:0 0 auto;
+		}
+		.cat-btn.active{background:var(--brand); color:white; border-color:var(--brand-dark)}
+
+		.product-grid{
+			display:grid;
+			grid-template-columns: repeat(2, 1fr);
+			gap:0.6rem;
+		}
+
+		.prod{
+			background:linear-gradient(180deg,#fff,#fff);
+			border-radius:10px;
+			padding:0.6rem;
+			display:flex;
+			flex-direction:column;
+			justify-content:space-between;
+			min-height:64px;
+			border:1px solid #eee;
+			cursor:pointer;
+			transition:transform .12s ease, box-shadow .12s ease;
+		}
+		.prod:hover{ transform:translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+		.prod .name{font-weight:700;font-size:0.95rem;margin-bottom:0.35rem}
+		.prod .price{color:var(--brand-dark); font-weight:800}
+
+		.extras{
+			margin-top:0.9rem;
+			display:grid; 
+			grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); 
+			gap:0.6rem;
+		}
+		.extras .ext-btn{
+			background:linear-gradient(180deg,#fff,#fff);
+			border-radius:10px;
+			padding:0.6rem;
+			display:flex;
+			flex-direction:column;
+			justify-content:space-between;
+			min-height:64px;
+			border:1px solid #eee;
+			cursor:pointer;
+			transition:transform .12s ease, box-shadow .12s ease;
+			text-align:left; 
+			width:100%; 
+		}
+		.extras .ext-btn:hover{ transform:translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+		.extras .ext-btn .name{font-weight:700;font-size:0.95rem;margin-bottom:0.35rem}
+		.extras .ext-btn .price{color:var(--brand-dark); font-weight:800}
+
+		/* --- Tickets --- */
+		.ticket-manager {
+			position: sticky;
+			top: 1rem;
+			height: fit-content;
+		}
+
+		.ticket-tabs {
+			display: flex;
+			gap: 4px;
+			overflow-x: auto;
+			padding-bottom: 8px; 
+		}
+		.ticket-tab {
+			flex: 0 0 auto;
+			padding: 0.5rem 0.8rem;
+			border-radius: var(--radius) var(--radius) 0 0;
+			border: 1px solid var(--ticket-border);
+			border-bottom: none;
+			background: var(--ticket-bg);
+			color: #555;
+			font-weight: 600;
+			cursor:pointer;
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			transition: background .15s ease;
+			box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+			border-left: 5px solid rgba(0,0,0,0.1); 
+		}
+		.ticket-tab.active {
+			background: var(--ticket-active-bg);
+			color: var(--text);
+			border-color: var(--brand);
+			border-bottom: 1px solid var(--ticket-active-bg); 
+			z-index: 10;
+		}
+		.ticket-tab:hover:not(.active) { background: #f0f0f0; }
+
+		/* Colores de las pestaas activas */
+		.ticket-tab.banderilla-salchicha { border-left-color: var(--brand-dark); }
+		.ticket-tab.banderilla-combinada { border-left-color: #007bff; }
+		.ticket-tab.banderilla-queso { border-left-color: #28a745; }
+		.ticket-tab.banderilla-salchicha.active { border-color: var(--brand-dark); border-bottom: 1px solid var(--ticket-active-bg); }
+		.ticket-tab.banderilla-combinada.active { border-color: #007bff; border-bottom: 1px solid var(--ticket-active-bg); }
+		.ticket-tab.banderilla-queso.active { border-color: #28a745; border-bottom: 1px solid var(--ticket-active-bg); }
+
+		.new-ticket-btn {
+			background: var(--success);
+			color: white;
+			padding: 0.5rem 0.8rem;
+			border-radius: var(--radius) var(--radius) 0 0;
+			border: none;
+			cursor: pointer;
+			font-weight: 700;
+			flex: 0 0 auto;
+		}
+		.close-tab { 
+			background: none; 
+			border: none; 
+			color: #777; 
+			font-weight: 700; 
+			cursor: pointer; 
+			padding: 0; 
+			line-height: 1;
+		}
+		.ticket-tab.active .close-tab { color: var(--danger); }
+
+		.ticket {
+			background: var(--ticket-active-bg);
+			border-radius: 0 0 var(--radius) var(--radius); 
+			padding:1rem;
+			box-shadow: var(--shadow);
+			margin-top: -1px; 
+		}
+
+		.ticket .items{max-height:46vh; overflow:auto; padding-right:0.25rem}
+		
+		.ticket .item{
+			display:flex;
+			gap:0.6rem;
+			align-items:center;
+			justify-content:space-between;
+			padding:0.5rem; 
+			margin-bottom: 4px; 
+			border-radius: 6px;
+			border-left: 5px solid rgba(0,0,0,0.1); 
+			transition: border-left .3s ease;
+		}
+
+		/* Colores por tipo de relleno de tem */
+		.item.banderilla-salchicha { background-color: var(--color-salchicha); border-left-color: var(--brand-dark); }
+		.item.banderilla-combinada { background-color: var(--color-combinada); border-left-color: #007bff; }
+		.item.banderilla-queso { background-color: var(--color-queso); border-left-color: #28a745; }
+		.item.extra-item { background-color: var(--color-extra); }
+
+		/* Estilo para el estado 'HECHO' */
+		.item.done { opacity: 0.7; border-left: 5px solid var(--success); }
+		.item.done .done-btn { background: var(--success); color: white; }
+		
+		/* --- Totales y Botones --- */
+		.totals{
+			margin-top:0.6rem;
+			display:flex;
+			flex-direction:column;
+			gap:0.35rem;
+		}
+		.totals .row{display:flex;justify-content:space-between; font-weight:700; font-size:1rem}
+		.pay-btn{
+			margin-top:0.9rem;
+			width:100%;
+			padding:0.85rem;
+			border-radius:12px;
+			background:var(--brand);
+			color:white;
+			font-weight:800;
+			border:none;
+			cursor:pointer;
+			box-shadow: 0 10px 20px rgba(255,107,0,0.18);
+			transition:transform .12s ease;
+		}
+		.pay-btn:active{ transform:translateY(2px) }
+
+		/* --- Resumen de Ventas por Producto (Inventario) --- */
+		#sales-summary-list {
+			display: grid;
+			gap: 10px;
+		}
+		.sale-item {
+			padding: 8px 12px;
+			background: var(--muted);
+			border-radius: 6px;
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			font-size: 0.95rem;
+			border-left: 5px solid rgba(0,0,0,0.1); 
+		}
+		/* Colores para las ventas por producto */
+		.sale-item.banderilla-salchicha { background-color: var(--color-salchicha); border-left-color: var(--brand-dark); }
+		.sale-item.banderilla-combinada { background-color: var(--color-combinada); border-left-color: #007bff; }
+		.sale-item.banderilla-queso { background-color: var(--color-queso); border-left-color: #28a745; }
+		.sale-item.extra-item { background-color: var(--color-extra); border-left-color: #777; }
+
+		.sale-item .name { font-weight: 600; color: #444; }
+		.sale-item .qty {
+			font-weight: 800;
+			color: var(--brand-dark);
+			background: white;
+			padding: 2px 8px;
+			border-radius: 4px;
+			border: 1px solid #ddd;
+		}
+
+		/* --- Responsividad --- */
+		@media (max-width: 880px) {
+			/* 1. Cambiar el contenedor principal a una sola columna */
+			.wrap {
+				grid-template-columns: 1fr; 
+				gap: 2rem; 
+			}
+
+			/* 2. Asegurar que el ticket manager se muestre primero en mviles */
+			.ticket-manager {
+				order: 1; 
+				position: relative; 
+				top: 0;
+			}
+
+			/* 3. Mover la seccin de productos debajo del ticket */
+			.panel[aria-label="Productos"] {
+				order: 2; 
+			}
+
+			/* 4. Ajustar la rejilla de productos en tabletas */
+			.product-grid {
+				grid-template-columns: repeat(3, 1fr); 
+				gap: 0.5rem;
+			}
+
+			/* 5. Optimizar el panel de Tickets para mviles */
+			.ticket .items {
+				max-height: 40vh; 
+			}
+
+			/* 6. Ajustar el header del ticket para evitar desbordamiento */
+			#client-name-input {
+				min-width: 100px;
+				font-size: 0.9rem;
+			}
+		}
+
+		@media (max-width: 520px) {
+			.product-grid {
+				grid-template-columns: repeat(2, 1fr); 
+			}
+			.ticket-tabs {
+				padding-bottom: 0.5rem;
+			}
+			.ticket-tab, .new-ticket-btn {
+				padding: 0.4rem 0.6rem;
+				font-size: 0.8rem;
+			}
+			.ticket .item {
+				flex-wrap: wrap; 
+			}
+			.ticket .item .meta {
+				flex-basis: 100%; 
+				margin-bottom: 5px;
+			}
+			.ticket .item > div:last-child {
+				justify-content: space-between;
+				width: 100%;
+			}
+			.done-btn {
+				margin-right: 4px;
+				padding: 0.4rem;
+				font-size: 0.75rem;
+			}
+		}
+
+		/* --- Utilidades --- */
+		.muted{color:#777;font-size:0.9rem}
+		.center{display:flex;align-items:center;justify-content:center}
+		.footer-note{
+			grid-column:1 / -1;
+			text-align:center;
+			margin-top:0.6rem;
+			color:#888;
+			font-size:0.85rem;
+		}
+		.ticket .empty { padding:1rem; text-align:center; color:#666 }
+
+	</style>
+</head>
+<body>
+
+<main class="wrap" role="main" aria-labelledby="title">
+	<header class="app-header">
+		<div class="brand">
+			<div class="logo">AB</div>
+			<div>
+				<h1 id="title">Astro Bite</h1>
+				<p class="sub">Caja rpida  Toma pedidos en segundos</p>
+			</div>
+		</div>
+		<div style="text-align:right">
+			<p class="muted" style="margin:0">Sucursal: Central</p>
+			<p class="muted" style="margin:0">Usuario: Equipo</p>
+		</div>
+	</header>
+
+	<section class="panel" aria-label="Productos">
+		<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.6rem">
+			<h3 style="margin:0">Seleccionar producto</h3>
+			<div class="muted">Toca para aadir</div>
+		</div>
+
+		<div class="categories" role="tablist" aria-label="Categoras">
+			<button class="cat-btn active" data-cat="Salchicha">Salchicha</button>
+			<button class="cat-btn" data-cat="Combinada">Combinada</button>
+			<button class="cat-btn" data-cat="Queso">Queso</button>
+			<button class="cat-btn" data-cat="Extras">Extras</button>
+			</div>
+
+		<div class="product-grid" id="product-grid" role="list"></div>
+		<div class="extras" id="extras-grid"></div>
+
+		<section id="daily-summary" class="panel" style="margin-top: 1rem; padding: 1rem; display:none;">
+			<h3 style="margin-top:0;">Resumen Diario (Tickets)</h3>
+			<div id="summary-list" style="max-height: 200px; overflow-y: auto;">
+				<p class="muted center" id="summary-empty-message">No hay tickets guardados hoy.</p>
+			</div>
+		</section>
+
+		<section id="sales-summary" class="panel" style="margin-top: 1rem; padding: 1rem; display:none;">
+			<h3 style="margin-top:0;">Ventas por Producto (Total: <span id="daily-sales-total">$0.00</span>)</h3>
+			
+			<button onclick="resetAndExport()" 
+				style="width: 100%; padding: 0.5rem; background: var(--danger); color: white; border: none; border-radius: 6px; margin-bottom: 10px; cursor: pointer; font-weight:700">
+				Reiniciar Cuentas y Exportar Reporte (.xlsx)
+			</button>
+
+			<div id="sales-summary-list">
+				<p class="muted center">No hay productos vendidos hoy.</p>
+			</div>
+		</section>
+	</section>
+
+	<aside class="ticket-manager" aria-label="Tickets Activos">
+		<div class="ticket-tabs" id="ticket-tabs">
+			<button class="new-ticket-btn" onclick="newTicket()"> Nuevo Ticket</button>
+		</div>
+
+		<div class="ticket" aria-label="Ticket Actual">
+			<div style="display:flex; align-items:center; margin-bottom:0.6rem; border-bottom:1px solid #eee; padding-bottom:8px">
+				<h2 style="margin:0; font-size:1.1rem; min-width:80px">Cliente:</h2>
+				<input type="text" id="client-name-input" value="Sin Nombre" 
+					style="flex-grow:1; padding:0.5rem; border:1px solid #ddd; border-radius:6px; font-weight:700; font-size:1rem;" />
+			</div>
+			
+			<div class="items" role="list" aria-live="polite"></div>
+
+			<div class="totals" aria-hidden="false">
+				<div class="row"><span>Subtotal</span><span id="subtotal">$0.00</span></div>
+				<div class="row"><span>IVA (0%)</span><span>$0.00</span></div>
+				<div class="row" style="font-size:1.1rem"><span>Total</span><span id="total">$0.00</span></div>
+			</div>
+
+			<div style="margin-top:0.9rem">
+				<label style="display:block;font-size:0.9rem;margin-bottom:0.3rem">Forma de Pago</label>
+				<select id="payment-method-select" style="width:100%;padding:0.55rem;border-radius:8px;border:1px solid #eee">
+					<option value="Efectivo">Efectivo</option>
+					<option value="Tarjeta">Tarjeta</option>
+					<option value="Transferencia">Transferencia</option>
+				</select>
+			</div>
+			
+			<div style="margin-top:0.6rem">
+				<label style="display:block;font-size:0.9rem;margin-bottom:0.3rem">Nota</label>
+				<textarea id="ticket-note-input" placeholder="Ej: para llevar, sin sal" rows="2" style="width:100%;padding:0.55rem;border-radius:8px;border:1px solid #eee; resize:vertical;"></textarea>
+			</div>
+
+			<button class="pay-btn" type="button" onclick="saveTicket()">Guardar ticket</button>
+
+		</div>
+	</aside>
+
+	<div class="footer-note">Diseo rpido  listo para conectar a base de datos y back-end.</div>
+</main>
+
+<script>
+const productsData = {
+	Salchicha:[{name:"Ramen",price:45, relleno:"Salchicha"},{name:"Cruji",price:45, relleno:"Salchicha"},{name:"Papa",price:50, relleno:"Salchicha"},{name:"Cheetos",price:55, relleno:"Salchicha"},{name:"Flamin Hot",price:55, relleno:"Salchicha"}],
+	Combinada:[{name:"Ramen",price:50, relleno:"Combinada"},{name:"Cruji",price:50, relleno:"Combinada"},{name:"Papa",price:55, relleno:"Combinada"},{name:"Cheetos",price:60, relleno:"Combinada"},{name:"Flamin Hot",price:60, relleno:"Combinada"}],
+	Queso:[{name:"Ramen",price:55, relleno:"Queso"},{name:"Cruji",price:55, relleno:"Queso"},{name:"Papa",price:60, relleno:"Queso"},{name:"Cheetos",price:65, relleno:"Queso"},{name:"Flamin Hot",price:65, relleno:"Queso"}],
+	Extras:[{name:"Orden de Papas",price:40, isExtra:true}, {name:"Salchipulpos",price:35, isExtra:true}]
+};
+
+// --- ARREGLOS DE DATOS ---
+let activeTickets = []; 
+let activeTicketIndex = -1; 
+let dailySummaryTickets = []; 
+let productSalesSummary = {}; 
+let papasSalesSummary = 0; 
+
+// --- ELEMENTOS DOM ---
+const ticketTabsEl = document.getElementById('ticket-tabs');
+const clientNameInputEl = document.getElementById('client-name-input');
+const ticketNoteInputEl = document.getElementById('ticket-note-input');
+const paymentMethodSelectEl = document.getElementById('payment-method-select');
+const productGrid=document.getElementById('product-grid');
+const extrasGrid=document.getElementById('extras-grid');
+const ticketItems=document.querySelector('.ticket .items');
+const subtotalEl=document.getElementById('subtotal');
+const totalEl=document.getElementById('total');
+const summaryListEl = document.getElementById('summary-list');
+const salesSummaryListEl = document.getElementById('sales-summary-list');
+const dailySalesTotalEl = document.getElementById('daily-sales-total');
+
+
+// --- PERSISTENCIA DE DATOS (LOCALSTORAGE) ---
+
+function saveAllData() {
+    // Guardamos los datos clave para la persistencia
+    localStorage.setItem('dailySummaryTickets', JSON.stringify(dailySummaryTickets));
+    localStorage.setItem('productSalesSummary', JSON.stringify(productSalesSummary));
+    localStorage.setItem('papasSalesSummary', papasSalesSummary); 
+}
+
+function loadAllData() {
+    // Cargamos los datos guardados, si existen
+    const storedTickets = localStorage.getItem('dailySummaryTickets');
+    if (storedTickets) {
+        dailySummaryTickets = JSON.parse(storedTickets);
+    }
+    
+    const storedSales = localStorage.getItem('productSalesSummary');
+    if (storedSales) {
+        productSalesSummary = JSON.parse(storedSales);
+    }
+    
+    const storedPapas = localStorage.getItem('papasSalesSummary');
+    if (storedPapas) {
+        papasSalesSummary = parseInt(storedPapas) || 0; 
+    }
+}
+
+
+// --- GESTIN DE TICKETS ---
+
+// Funcin para crear un nuevo ticket
+function newTicket(defaultName) {
+	const name = prompt("Introduce el nombre del cliente para este ticket:", defaultName || `Cliente ${activeTickets.length + 1}`);
+	const finalName = name === null ? `Cliente ${activeTickets.length + 1}` : (name.trim() || `Cliente ${activeTickets.length + 1}`);
+
+	const newTicket = {
+		id: Date.now(),
+		name: finalName,
+		items: [],
+		note: '',
+		paymentMethod: 'Efectivo' 
+	};
+	activeTickets.push(newTicket);
+	activeTicketIndex = activeTickets.length - 1; 
+	renderTabs();
+	renderTicket();
+}
+
+function selectTicket(index) {
+	activeTicketIndex = index;
+	renderTabs();
+	renderTicket();
+}
+
+// Funcin para crear la clave del producto base (SIN Papas Extras)
+function createProductKey(item) {
+	let key = item.name;
+	let relleno = item.relleno;
+
+	if (relleno) {
+		key = `${relleno} ${item.name}`;
+	} else {
+		relleno = 'extra';
+	}
+	
+	return { key, relleno: relleno.toLowerCase() };
+}
+
+// Funcin para guardar (cerrar) el ticket (ACTUALIZADA: CONTEO DOBLE)
+function saveTicket() {
+	if (activeTicketIndex === -1) return alert("No hay ticket activo para guardar.");
+	
+	const currentTicket = activeTickets[activeTicketIndex];
+	if (currentTicket.items.length === 0) {
+		alert(`El ticket de "${currentTicket.name}" est vaco. No se guardar.`);
+		removeTicket(activeTicketIndex);
+		return;
+	}
+
+	const total = calculateTotal(currentTicket.items);
+
+	// 1. Actualizar el Resumen de Ventas por Producto y Papas (Lgica de separacin)
+	currentTicket.items.forEach(item => {
+		const { key } = createProductKey(item);
+
+        // a) Contar el producto base (banderilla o extra)
+		productSalesSummary[key] = (productSalesSummary[key] || 0) + item.qty;
+		
+        // b) Contar las Papas Extras por separado, si las tiene
+		if (item.papas || item.papasExtra) {
+			papasSalesSummary += item.qty;
+		}
+	});
+	renderSalesSummary();
+
+	// 2. Guardar el ticket en el resumen diario
+	const ticketToSave = {
+		...currentTicket,
+		total: total,
+		date: new Date().toLocaleString()
+	};
+	dailySummaryTickets.push(ticketToSave);
+	renderDailySummary(); 
+
+	// 3. Notificacin y ELIMINACIN del TPV
+	alert(`Ticket de "${currentTicket.name}" guardado. Total: $${total.toFixed(2)}. (Simulacin de cierre de venta)`);
+	
+	// 4. Guardar los datos en el navegador
+	saveAllData(); 
+	
+	// 5. Llamada a removeTicket para eliminarlo de activos y forzar el refresco
+	removeTicket(activeTicketIndex, true); 
+}
+
+// Funcin para eliminar un ticket (Corregida la lgica de refresco)
+function removeTicket(index, isSave = false) {
+	if (!isSave && !confirm(`Ests seguro de que quieres eliminar el ticket de "${activeTickets[index].name}"?`)) {
+		return;
+	}
+	
+	activeTickets.splice(index, 1);
+	
+	saveAllData(); 
+	
+	if (activeTickets.length === 0) {
+		activeTicketIndex = -1;
+		newTicket('Cliente 1'); 
+	} else {
+		if (index === activeTicketIndex) {
+			activeTicketIndex = Math.max(0, activeTickets.length - 1);
+		} else if (index < activeTicketIndex) {
+			activeTicketIndex--; 
+		}
+		renderTabs();
+		renderTicket();
+	}
+}
+
+function renderTabs() {
+	ticketTabsEl.innerHTML = '';
+	
+	activeTickets.forEach((t, i) => {
+		const tab = document.createElement('button');
+		const firstItem = t.items.find(item => !item.isExtra);
+		let tabColorClass = '';
+		if (firstItem) {
+			tabColorClass = `banderilla-${firstItem.relleno.toLowerCase()}`;
+		}
+
+		tab.className = `ticket-tab ${i === activeTicketIndex ? 'active' : ''} ${tabColorClass}`;
+		tab.setAttribute('data-index', i);
+		tab.onclick = () => selectTicket(i);
+		
+		tab.innerHTML = `<span>${t.name} (${t.items.length})</span>`;
+		
+		const closeBtn = document.createElement('button');
+		closeBtn.className = 'close-tab';
+		closeBtn.innerHTML = ''; 
+		closeBtn.onclick = (e) => {
+			e.stopPropagation(); 
+			removeTicket(i);
+		};
+		tab.appendChild(closeBtn);
+		
+		ticketTabsEl.appendChild(tab);
+	});
+	
+	const newBtn = document.createElement('button');
+	newBtn.className = 'new-ticket-btn';
+	newBtn.textContent = '+ Nuevo Ticket';
+	newBtn.onclick = newTicket;
+	ticketTabsEl.appendChild(newBtn);
+}
+
+
+// --- LGICA DE PRODUCTOS ---
+
+function changeQuantity(itemIndex, delta) {
+	const ticket = activeTickets[activeTicketIndex];
+	const item = ticket.items[itemIndex];
+	item.qty += delta;
+
+	if (item.qty <= 0) {
+		removeItem(itemIndex);
+	} else {
+		renderTicket();
+		renderTabs(); 
+	}
+}
+
+function removeItem(itemIndex){ 
+	const ticket = activeTickets[activeTicketIndex];
+	ticket.items.splice(itemIndex,1);
+	renderTabs(); 
+	renderTicket();
+}
+
+function togglePapas(itemIndex){
+	const ticket = activeTickets[activeTicketIndex];
+	ticket.items[itemIndex].papas=!ticket.items[itemIndex].papas;
+	renderTicket();
+}
+
+function togglePapasExtra(itemIndex){
+	const ticket = activeTickets[activeTicketIndex];
+	ticket.items[itemIndex].papasExtra = !ticket.items[itemIndex].papasExtra;
+	renderTicket();
+}
+
+function toggleDone(itemIndex){
+	const ticket = activeTickets[activeTicketIndex];
+	ticket.items[itemIndex].done = !ticket.items[itemIndex].done;
+	renderTicket();
+}
+
+function renderProducts(category){
+	productGrid.innerHTML="";
+	extrasGrid.innerHTML="";
+	
+	if(category==="Extras"){
+		productsData.Extras.forEach(p=>{
+			const btn=document.createElement("button");
+			btn.className="ext-btn";
+			btn.innerHTML=`<div class="name">${p.name}</div><div class="price">$${p.price}</div>`;
+			btn.onclick=()=>addToTicket({...p,qty:1});
+			extrasGrid.appendChild(btn);
+		});
+		return;
+	}
+	productsData[category].forEach(p=>{
+		const div=document.createElement("div");
+		div.className="prod";
+		div.innerHTML=`<div class="name">${p.name}</div><div class="price">$${p.price}</div>`;
+		div.onclick=()=>addToTicket({...p,qty:1,papas:false, relleno: p.relleno, done:false}); 
+		productGrid.appendChild(div);
+	});
+}
+
+// Aadir producto al ticket (SIEMPRE crea una nueva lnea)
+function addToTicket(item){
+	if (activeTicketIndex === -1) {
+		newTicket(); 
+		if (activeTickets.length === 0) return; 
+	}
+	
+	const ticket = activeTickets[activeTicketIndex];
+	
+	const itemToAdd = item.isExtra 
+		? {...item, id: Date.now(), qty:1, isExtra:true, papasExtra: item.name === 'Salchipulpos' ? false : undefined, done:false}
+		: {...item, id: Date.now(), qty:1, isExtra:false, papas:false, relleno: item.relleno, done:false};
+	
+	ticket.items.push(itemToAdd);
+	
+	renderTabs(); 
+	renderTicket();
+}
+
+function calculateTotal(items) {
+	let subtotal = 0;
+	items.forEach(item => {
+		let price = item.price;
+		if (item.papas) price += 15;
+		if (item.papasExtra) price += 15;
+		subtotal += price * item.qty;
+	});
+	return subtotal;
+}
+
+function renderTicket(){
+	if (activeTicketIndex === -1 || activeTickets.length === 0) {
+		ticketItems.innerHTML='<div class="empty">Crea un nuevo ticket para empezar a tomar pedidos.</div>';
+		clientNameInputEl.value = "Sin Tickets Activos";
+		clientNameInputEl.disabled = true; 
+		subtotalEl.textContent=`$0.00`;
+		totalEl.textContent=`$0.00`;
+		ticketNoteInputEl.value = '';
+		paymentMethodSelectEl.value = 'Efectivo';
+		return;
+	}
+	
+	const currentTicket = activeTickets[activeTicketIndex];
+	const ticketItemsList = currentTicket.items;
+
+	// 1. Actualizar el nombre del cliente, nota y pago
+	clientNameInputEl.value = currentTicket.name;
+	clientNameInputEl.disabled = false;
+	ticketNoteInputEl.value = currentTicket.note;
+	paymentMethodSelectEl.value = currentTicket.paymentMethod;
+
+	clientNameInputEl.oninput = (e) => {
+		currentTicket.name = e.target.value;
+		renderTabs(); 
+	};
+
+	ticketNoteInputEl.oninput = (e) => {
+		currentTicket.note = e.target.value;
+	};
+
+	paymentMethodSelectEl.onchange = (e) => {
+		currentTicket.paymentMethod = e.target.value;
+	};
+
+
+	ticketItems.innerHTML="";
+	if(ticketItemsList.length===0){
+		ticketItems.innerHTML='<div class="empty">No hay productos en el ticket. Aade desde la izquierda.</div>';
+	}
+
+	let subtotal=0;
+	
+	ticketItemsList.forEach((item,i)=>{
+		let price=item.price;
+		let itemClass = 'item';
+		let metaContent='';
+		let papasCheckbox='';
+		
+		// Lgica de productos (Relleno, Extras, Papas)
+		if(!item.isExtra){
+			itemClass += ` banderilla-${item.relleno.toLowerCase()}`;
+			metaContent=`<div class="main-name">${item.relleno || 'Banderilla'}</div>`; 
+			metaContent+=`<div class="small muted">${item.name}</div>`; 
+			
+			// Checkbox de Papas (Para banderillas)
+			papasCheckbox=`<label style="margin-left:8px;font-size:0.85rem;white-space:nowrap">
+			<input type="checkbox" ${item.papas?"checked":""} onchange="togglePapas(${i})"> Papas +$15
+			</label>`;
+			if(item.papas) price+=15;
+		} else {
+			itemClass += ' extra-item';
+			metaContent=`<div style="font-weight:800">${item.name}</div>`;
+			metaContent+=`<div class="small muted">Extra</div>`;
+			
+			// Checkbox de Papas (Para Salchipulpos)
+			if(item.name === 'Salchipulpos'){
+				papasCheckbox=`<label style="margin-left:8px;font-size:0.85rem;white-space:nowrap">
+					<input type="checkbox" ${item.papasExtra?"checked":""} onchange="togglePapasExtra(${i})"> Papas +$15
+				</label>`;
+				if(item.papasExtra) price+=15;
+			}
+		}
+		
+		if(item.done) { itemClass += ' done'; }
+		
+		subtotal+=price*item.qty;
+		
+		// Botones de Cantidad 
+		const qtyControls = `
+			<button onclick="changeQuantity(${i}, -1)" style="background:#ddd;border:none;border-radius:50%;width:24px;height:24px;font-weight:700;cursor:pointer;">-</button>
+			<div class="qty">${item.qty}</div>
+			<button onclick="changeQuantity(${i}, 1)" style="background:#ddd;border:none;border-radius:50%;width:24px;height:24px;font-weight:700;cursor:pointer;">+</button>
+		`;
+
+		// Botn de 'Hecho' y 'Eliminar' 
+		const doneButtonText = item.done ? 'Listo' : 'Preparar';
+		const doneButton = `<button class="done-btn" onclick="toggleDone(${i})">${doneButtonText}</button>`;
+		const removeButton = `<button onclick="removeItem(${i})" style="background:none;border:none;color:var(--danger);cursor:pointer;font-weight:800;font-size:1.1rem"></button>`;
+
+		const div=document.createElement('div');
+		div.className=itemClass; 
+		div.innerHTML=`
+			<div class="meta">${metaContent}${papasCheckbox}</div>
+			<div style="display:flex;gap:4px;align-items:center">
+				${doneButton} 
+				${qtyControls}
+				<div style="font-weight:800; min-width:60px; text-align:right">$${(price*item.qty).toFixed(2)}</div>
+				${removeButton}
+			</div>`;
+		ticketItems.appendChild(div);
+	});
+	
+	// 3. Actualizar Totales 
+	subtotalEl.textContent=`$${subtotal.toFixed(2)}`;
+	totalEl.textContent=`$${subtotal.toFixed(2)}`;
+	renderTabs(); 
+}
+
+// Funcin para renderizar el resumen diario (Tickets)
+function renderDailySummary() {
+	if (dailySummaryTickets.length === 0) {
+		summaryListEl.innerHTML = '<p class="muted center">No hay tickets guardados hoy.</p>';
+	} else {
+		summaryListEl.innerHTML = '';
+		dailySummaryTickets.forEach(ticket => {
+			const div = document.createElement('div');
+			div.className = 'summary-item';
+
+			const itemsList = ticket.items.map(item => {
+				let name = item.name;
+				if (item.relleno) name = `${item.relleno} ${item.name}`;
+				if (item.papas || item.papasExtra) name += ' + Papas';
+				return `${item.qty}  ${name}`;
+			}).join('; ');
+
+			div.innerHTML = `
+				<h4>
+					<span>${ticket.name}</span>
+					<span style="color:var(--success);">${ticket.total.toFixed(2)} $</span>
+				</h4>
+				<div class="details">
+					<span>Pago:</span> ${ticket.paymentMethod}<br>
+					<span>Items:</span> ${itemsList}
+				</div>
+			`;
+			summaryListEl.appendChild(div);
+		});
+	}
+	
+	renderSalesSummary();
+}
+
+// Funcin para renderizar el resumen de ventas por producto (Con total general)
+function renderSalesSummary() {
+	const detailedSales = {};
+
+	// 1. Procesar los productos principales vendidos
+	Object.entries(productSalesSummary).forEach(([fullKey, qty]) => {
+		let relleno = 'extra';
+		if (fullKey.includes('Salchicha')) { relleno = 'salchicha'; }
+		else if (fullKey.includes('Combinada')) { relleno = 'combinada'; }
+		else if (fullKey.includes('Queso')) { relleno = 'queso'; }
+
+		detailedSales[fullKey] = {
+			name: fullKey,
+			qty: qty,
+			relleno: relleno
+		};
+	});
+	
+	const keys = Object.keys(detailedSales);
+	
+	// 2. Agregar el conteo total de Papas +$15 si existe (como tem separado)
+	if (papasSalesSummary > 0) {
+		const papasKey = "Papas Chicas Extras ($15)";
+		detailedSales[papasKey] = {
+			name: papasKey,
+			qty: papasSalesSummary,
+			relleno: 'extra'
+		};
+		if (!keys.includes(papasKey)) {
+			keys.push(papasKey);
+		}
+	}
+
+	if (keys.length === 0) {
+		salesSummaryListEl.innerHTML = '<p class="muted center">No hay productos vendidos hoy.</p>';
+	} else {
+		salesSummaryListEl.innerHTML = '';
+		
+		// Ordenar y Renderizar
+		keys.sort((a, b) => detailedSales[b].qty - detailedSales[a].qty);
+
+		keys.forEach(key => {
+			const item = detailedSales[key];
+			const div = document.createElement('div');
+			div.className = `sale-item banderilla-${item.relleno}`; 
+			
+			div.innerHTML = `
+				<div class="name">${item.name}</div>
+				<div class="qty">${item.qty}</div>
+			`;
+			salesSummaryListEl.appendChild(div);
+		});
+	}
+	
+	// 3. Calcular y mostrar el Total General de las ventas
+	const grandTotal = dailySummaryTickets.reduce((sum, ticket) => sum + ticket.total, 0);
+	dailySalesTotalEl.textContent = `$${grandTotal.toFixed(2)}`;
+}
+
+// Funcin para calcular el total
+function calculateTotal(items) {
+	let subtotal = 0;
+	items.forEach(item => {
+		let price = item.price;
+		if (item.papas) price += 15;
+		if (item.papasExtra) price += 15;
+		subtotal += price * item.qty;
+	});
+	return subtotal;
+}
+
+// --- FUNCIN DE EXPORTACIN XLSX (SheetJS) ---
+
+function exportToXLSX() {
+    // Si no hay datos, no hacemos nada
+    if (dailySummaryTickets.length === 0 && Object.keys(productSalesSummary).length === 0) {
+        return false;
+    }
+
+    // --- HOJA 1: REPORTE TRANSACCIONAL ---
+    const transactionsData = [];
+    const headersTransacciones = ["ID Transaccion", "Cliente", "Hora de Compra", "Forma de Pago", "Items Comprados", "Monto Total"];
+    transactionsData.push(headersTransacciones);
+
+    dailySummaryTickets.forEach(ticket => {
+        const time = new Date(ticket.id).toLocaleTimeString();
+        const items = ticket.items.map(item => {
+            let name = item.name;
+            if (item.relleno) name = `${item.relleno} ${item.name}`;
+            if (item.papas || item.papasExtra) name += ' c/Papas';
+            // Reemplazamos comillas internas si existen, y comas, para evitar rupturas de CSV/EXCEL
+            return `${item.qty}x ${name}`.replace(/"/g, '').replace(/,/g, ' '); 
+        }).join(' | ');
+
+        transactionsData.push([
+            ticket.id,
+            ticket.name,
+            time,
+            ticket.paymentMethod,
+            items,
+            parseFloat(ticket.total.toFixed(2)) // Usamos nmero para formato
+        ]);
+    });
+    
+    // --- HOJA 2: INVENTARIO/KPIs ---
+    const salesData = [];
+    const headersKPIs = ["Producto/Variante", "Cantidad Vendida"];
+    salesData.push(headersKPIs);
+
+    const keys = Object.keys(productSalesSummary).sort(); 
+    keys.forEach(key => {
+        salesData.push([key, productSalesSummary[key]]);
+    });
+
+    if (papasSalesSummary > 0) {
+        salesData.push(["Papas Chicas Extras ($15)", papasSalesSummary]);
+    }
+    
+    const grandTotal = dailySummaryTickets.reduce((sum, ticket) => sum + ticket.total, 0);
+    salesData.push(["", ""]); // Separador
+    salesData.push(["TOTAL VENTA GENERAL", parseFloat(grandTotal.toFixed(2))]);
+
+    // ------------------------------------------------------------------
+    // APLICACIN DE FORMATO CON SHEETJS
+    // ------------------------------------------------------------------
+    const wb = XLSX.utils.book_new();
+
+    // Hoja de Transacciones
+    const ws1 = XLSX.utils.aoa_to_sheet(transactionsData);
+    // Definir anchura de columnas (A=15, B=20, C=15, D=15, E=50, F=15)
+    ws1['!cols'] = [
+        {wch: 15}, {wch: 20}, {wch: 15}, {wch: 15}, {wch: 50}, {wch: 15}
+    ];
+    // Formato de Moneda (Columna F, Filas 2 en adelante)
+    for(let i = 1; i < transactionsData.length; i++) {
+        const cellRef = XLSX.utils.encode_cell({r: i, c: 5}); // Columna F
+        if (ws1[cellRef]) ws1[cellRef].z = "$0.00";
+    }
+    XLSX.utils.book_append_sheet(wb, ws1, "Transacciones Detalle");
+
+
+    // Hoja de Inventario/KPIs
+    const ws2 = XLSX.utils.aoa_to_sheet(salesData);
+    // Definir anchura de columnas (A=45, B=18)
+    ws2['!cols'] = [
+        {wch: 45}, {wch: 18}
+    ];
+    // Formato de Moneda (Celda del total - Columna B, ltima fila)
+    const totalRowIndex = salesData.length - 1;
+    const totalCellRef = XLSX.utils.encode_cell({r: totalRowIndex, c: 1}); // Columna B
+    if (ws2[totalCellRef]) ws2[totalCellRef].z = "$0.00";
+    
+    XLSX.utils.book_append_sheet(wb, ws2, "Inventario y KPIs");
+
+    // Descargar el archivo
+    const dateStr = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `Reporte_AstroBite_${dateStr}.xlsx`);
+    
+    return true;
+}
+
+// Funcin de Reinicio Inteligente
+function resetAndExport() {
+    // 1. Confirmacin de usuario
+    if (!confirm("ADVERTENCIA: Est seguro de REINICIAR LAS CUENTAS DIARIAS? Esto borrar el resumen de ventas. Asegrese de EXPORTAR!")) {
+        return;
+    }
+    
+    // 2. Generar y descargar el reporte XLSX
+    const success = exportToXLSX();
+    
+    if (success) {
+        // 3. Reiniciar las variables de conteo a cero
+        dailySummaryTickets = [];
+        productSalesSummary = {};
+        papasSalesSummary = 0;
+        
+        // 4. Guardar los valores reiniciados en localStorage
+        saveAllData(); 
+        
+        // 5. Actualizar la interfaz
+        renderDailySummary(); 
+        renderSalesSummary();
+        alert("Cuentas reiniciadas a cero. El reporte XLSX se ha descargado.");
+    } else {
+        alert("El reinicio fue cancelado porque no hay datos de ventas para exportar.");
+    }
+}
+
+
+// --- INICIALIZACIN ---
+document.addEventListener('DOMContentLoaded', (event) => {
+    loadAllData(); //  Cargar los datos antes de inicializar vistas
+    
+    // 1. Inicializa el primer ticket si no existe o si no hay tickets activos
+    if (activeTickets.length === 0) {
+		newTicket('Cliente 1');
+	} else {
+        // Si cargamos tickets, renderizamos el ltimo activo
+        activeTicketIndex = activeTickets.length - 1; 
+	}
+
+    renderProducts("Salchicha"); 
+
+	// 2. Conecta los botones de categora y los botones de resumen
+	const categoriesContainer = document.querySelector('.categories');
+	const summarySection = document.getElementById('daily-summary');
+	const salesSection = document.getElementById('sales-summary'); 
+	const productGridContainer = document.querySelector('.product-grid');
+	const extrasGridContainer = document.querySelector('.extras');
+
+	// Botones de Categoras de Productos
+	document.querySelectorAll('.cat-btn').forEach(btn=>{
+		btn.addEventListener('click',()=>{
+			document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
+			btn.classList.add('active');
+			
+			const category = btn.dataset.cat;
+			if (category) {
+				summarySection.style.display = 'none';
+				salesSection.style.display = 'none'; 
+				
+				if (category === 'Extras') {
+					productGridContainer.style.display = 'none';
+					extrasGridContainer.style.display = 'grid';
+				} else {
+					productGridContainer.style.display = 'grid';
+					extrasGridContainer.style.display = 'none';
+				}
+				renderProducts(category);
+			}
+		});
+	});
+
+	// Aadir el botn para ver el resumen diario (Tickets)
+	const dailySummaryBtn = document.createElement('button');
+	dailySummaryBtn.className = 'cat-btn';
+	dailySummaryBtn.textContent = 'Tickets Guardados';
+	dailySummaryBtn.dataset.cat = 'DailySummary';
+	categoriesContainer.appendChild(dailySummaryBtn);
+
+	dailySummaryBtn.addEventListener('click', () => {
+		document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+		dailySummaryBtn.classList.add('active');
+		
+		productGridContainer.style.display = 'none';
+		extrasGridContainer.style.display = 'none';
+		salesSection.style.display = 'none'; 
+		summarySection.style.display = 'block';
+		renderDailySummary();
+	});
+
+	// Aadir el botn para ver el resumen de ventas (Inventario) 
+	const salesSummaryBtn = document.createElement('button');
+	salesSummaryBtn.className = 'cat-btn';
+	salesSummaryBtn.textContent = 'Ventas por Producto';
+	salesSummaryBtn.dataset.cat = 'SalesSummary';
+	categoriesContainer.appendChild(salesSummaryBtn);
+
+	salesSummaryBtn.addEventListener('click', () => {
+		document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+		salesSummaryBtn.classList.add('active');
+		
+		productGridContainer.style.display = 'none';
+		extrasGridContainer.style.display = 'none';
+		summarySection.style.display = 'none'; 
+		salesSection.style.display = 'block';
+		renderSalesSummary();
+	});
+
+
+	// Asegurar que la primera pestaa est activa al inicio
+	document.querySelector('.cat-btn[data-cat="Salchicha"]').classList.add('active');
+    
+    // Forzar renderizado inicial
+    renderTabs();
+    renderTicket();
+});
+</script>
+
+</body>
+</html>
